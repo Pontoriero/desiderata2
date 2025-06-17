@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Gestione Orari - Blaise Pascal</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Sistema Gestione Orari</h1>
+            <p>Gestione desiderata e rotazioni MSL - Blaise Pascal, Reggio Emilia</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('overview')">📊 Panoramica</button>
+                <button class="tab" onclick="showTab('import')">📁 Importa Dati</button>
+                <button class="tab" onclick="showTab('teachers')">👥 Docenti</button>
+                <button class="tab" onclick="showTab('detail')">🔍 Dettaglio Docente</button>
+                <button class="tab" onclick="showTab('assignment')">🎯 Assegnazione MSL</button>
+                <button class="tab" onclick="showTab('analysis')">📈 Analisi</button>
+            </div>
+            
+            <!-- Tab Panoramica -->
+            <div id="overview" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-teachers">0</div>
+                        <div class="stat-label">Totale Docenti</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="desiderata-count">0</div>
+                        <div class="stat-label">Con Desiderata 2025-26</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="history-count">0</div>
+                        <div class="stat-label">Con Storico</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="rotation-needed">0</div>
+                        <div class="stat-label">Devono Ruotare</div>
+                    </div>
+                </div>
+                
+                <h3>Stato Caricamento Dati</h3>
+                <div id="data-status">
+                    <div class="status-box status-warning">
+                        📊 <strong>Desiderata 2025-26:</strong> <span id="desiderata-status">Non caricati</span><br>
+                        📋 <strong>Storico precedenti:</strong> <span id="history-status">Non caricato</span><br>
+                        🔗 <strong>Integrazione:</strong> <span id="integration-status">In attesa dati</span>
+                    </div>
+                </div>
+                
+                <h3>Distribuzione MSL Richiesti</h3>
+                <div class="day-distribution" id="msl-distribution">
+                    <!-- Popolato automaticamente -->
+                </div>
+                
+                <div class="form-section" style="margin-top: 30px;">
+                    <h3>🔄 Reset Sistema</h3>
+                    <p>Cancella tutti i dati salvati e ricomincia da capo con un sistema pulito.</p>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button class="btn btn-danger" onclick="resetAllData()">
+                            🗑️ Reset Totale Sistema
+                        </button>
+                    </div>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <small style="color: #6c757d;">
+                            ⚠️ Questa azione cancellerà: desiderata, storico, assegnazioni e tutti i dati salvati
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab Importa Dati -->
+            <div id="import" class="tab-content">
+                <div class="form-section">
+                    <h3>📁 Importa Desiderata 2025-26</h3>
+                    <p>File CSV esportato da Google Forms con i desiderata dei docenti</p>
+                    <input type="file" id="desiderata-file" accept=".csv">
+                    <button class="btn" onclick="loadDesiderata()">Carica Desiderata</button>
+                </div>
+                
+                <div class="form-section">
+                    <h3>📋 Importa Storico Anni Precedenti</h3>
+                    <p>File CSV con lo storico degli MSL assegnati negli anni passati</p>
+                    <input type="file" id="history-file" accept=".csv">
+                    <button class="btn" onclick="loadHistory()">Carica Storico</button>
+                </div>
+                
+                <div class="form-section">
+                    <h3>🗂️ Dati di Test</h3>
+                    <p>Carica dati di esempio per testare il sistema</p>
+                    <button class="btn" onclick="loadSampleData()">Carica Dati di Test</button>
+                </div>
+                
+                <div class="form-section">
+                    <h3>💾 Esporta Dati</h3>
+                    <p>Scarica i risultati in formato CSV</p>
+                    <button class="btn" onclick="exportData()">Esporta CSV</button>
+                    <button class="btn" onclick="exportAnalysis()">Esporta Analisi</button>
+                </div>
+            </div>
+            
+            <!-- Tab Docenti -->
+            <div id="teachers" class="tab-content">
+                <div class="search-section">
+                    <input type="text" id="teacher-search" placeholder="🔍 Cerca docente..." onkeyup="filterTeachers()">
+                    <select id="rotation-filter" onchange="filterTeachers()">
+                        <option value="">Tutti</option>
+                        <option value="must-rotate">Devono ruotare</option>
+                        <option value="no-rotation">Non devono ruotare</option>
+                        <option value="missing-data">Senza desiderata</option>
+                    </select>
+                </div>
+                <div id="teachers-list">
+                    <p>Carica i dati per visualizzare l'elenco docenti</p>
+                </div>
+            </div>
+            
+            <!-- Tab Dettaglio Docente -->
+            <div id="detail" class="tab-content">
+                <div class="form-section">
+                    <h3>🔍 Seleziona Docente per Dettagli</h3>
+                    <select id="teacher-selector" onchange="showTeacherDetail()">
+                        <option value="">-- Seleziona un docente --</option>
+                    </select>
+                </div>
+                
+                <div id="teacher-detail-content">
+                    <p class="text-center">Seleziona un docente dal menu per visualizzare i dettagli completi</p>
+                </div>
+            </div>
+            
+            <!-- Tab Assegnazione MSL -->
+            <div id="assignment" class="tab-content">
+                <div class="form-section">
+                    <h3>🎯 Assegnazione Automatica MSL</h3>
+                    <p>Utilizza algoritmi di ottimizzazione per assegnare automaticamente i giorni MSL considerando desiderata, rotazioni e bilanciamento.</p>
+                    
+                    <div class="algorithm-selection">
+                        <h4>Seleziona Algoritmo:</h4>
+                        <div class="algorithm-options">
+                            <label class="algorithm-option">
+                                <input type="radio" name="algorithm" value="greedy" checked>
+                                <div class="algorithm-card">
+                                    <h5>⚡ Algoritmo Greedy</h5>
+                                    <p>Veloce e efficace. Assegnazione in ordine di priorità con buoni risultati.</p>
+                                    <small>Tempo: ~1 secondo</small>
+                                </div>
+                            </label>
+                            <label class="algorithm-option">
+                                <input type="radio" name="algorithm" value="simulated">
+                                <div class="algorithm-card">
+                                    <h5>🧠 Simulated Annealing</h5>
+                                    <p>Ottimizzazione avanzata. Trova la soluzione più equilibrata possibile.</p>
+                                    <small>Tempo: ~5-10 secondi</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="assignment-controls">
+                        <button class="btn btn-primary" onclick="runAssignmentAlgorithm()">
+                            🚀 Calcola Assegnazione Automatica
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetAssignments()" disabled id="reset-btn">
+                            🔄 Reset
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="assignment-progress" class="progress-section" style="display: none;">
+                    <h4>⏳ Elaborazione in corso...</h4>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div id="progress-text">Inizializzazione...</div>
+                </div>
+                
+                <div id="assignment-results" style="display: none;">
+                    <div class="form-section">
+                        <h3>📋 Risultati Assegnazione</h3>
+                        <div class="results-summary" id="results-summary">
+                            <!-- Statistiche risultati -->
+                        </div>
+                        
+                        <div class="results-actions">
+                            <button class="btn btn-success" onclick="confirmAssignments()">
+                                ✅ Conferma Assegnazioni
+                            </button>
+                            <button class="btn btn-warning" onclick="showManualEdit()">
+                                ✏️ Modifica Manualmente
+                            </button>
+                            <button class="btn btn-info" onclick="exportAssignments()">
+                                📄 Esporta Risultati
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="assignment-table-container">
+                        <table class="assignment-table" id="assignment-table">
+                            <!-- Tabella risultati -->
+                        </table>
+                    </div>
+                </div>
+                
+                <div id="manual-edit-section" style="display: none;">
+                    <div class="form-section">
+                        <h3>✏️ Modifica Manuale</h3>
+                        <p>Modifica le assegnazioni che necessitano di aggiustamenti manuali.</p>
+                        <div id="manual-edit-content">
+                            <!-- Controlli modifica manuale -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab Analisi -->
+            <div id="analysis" class="tab-content">
+                <div id="analysis-content">
+                    <p>Carica i dati per visualizzare le analisi</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
