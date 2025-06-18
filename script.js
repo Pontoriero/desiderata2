@@ -112,6 +112,121 @@ function resetAllUI() {
     console.log('🎨 Interfaccia utente resettata');
 }
 
+
+// ===================================
+// AGGIUNTA PER EXPORT TABELLA ASSEGNAZIONI
+// ===================================
+
+// Aggiungi questa funzione al file script.js
+
+function exportAssignmentTable() {
+    if (currentAssignments.length === 0) {
+        alert('❌ Nessuna assegnazione da esportare. Esegui prima l\'assegnazione automatica.');
+        return;
+    }
+    
+    console.log('📊 Esportazione tabella assegnazioni...');
+    
+    // Intestazioni CSV semplici
+    const headers = [
+        'Cognome',
+        'Nome', 
+        'Email',
+        'Ore_Settimanali',
+        'MSL_Assegnato',
+        'Prima_Richiesta',
+        'Seconda_Richiesta',
+        'Preferenza_Soddisfatta',
+        'Anni_Stesso_MSL',
+        'Ultimo_MSL',
+        'Forzato_Rotazione',
+        'Motivo_Assegnazione',
+        'Note_Docente'
+    ];
+    
+    // Righe dati
+    const rows = currentAssignments.map(assignment => {
+        const teacher = assignment.teacher;
+        return [
+            teacher.surname || '',
+            teacher.name || '',
+            teacher.email || '',
+            teacher.hours || '',
+            assignment.assignedMSL || '',
+            assignment.requestedMSL1 || '',
+            assignment.requestedMSL2 || '',
+            assignment.satisfied ? 'SÌ' : 'NO',
+            teacher.rotationYears || '0',
+            teacher.lastMSL || '',
+            assignment.rotationForced ? 'SÌ' : 'NO',
+            assignment.reason || '',
+            teacher.notes || ''
+        ];
+    });
+    
+    // Crea CSV
+    const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+    
+    // Aggiungi BOM per Excel italiano
+    const csvWithBOM = '\uFEFF' + csvContent;
+    
+    // Nome file con timestamp
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    const filename = `assegnazioni_MSL_${timestamp}.csv`;
+    
+    // Download
+    downloadFile(csvWithBOM, filename, 'text/csv;charset=utf-8');
+    
+    // Messaggio di conferma
+    alert(`✅ Tabella assegnazioni esportata!\n\nFile: ${filename}\nRighe: ${currentAssignments.length} docenti`);
+    
+    console.log(`✅ Export completato: ${filename} (${currentAssignments.length} righe)`);
+}
+
+// ===================================
+// MODIFICA ALLA FUNZIONE displayAssignmentResults
+// ===================================
+
+// Sostituisci la funzione displayAssignmentResults esistente con questa versione aggiornata:
+
+function displayAssignmentResults() {
+    document.getElementById('assignment-results').style.display = 'block';
+    document.getElementById('reset-btn').disabled = false;
+    
+    // Calcola statistiche
+    const stats = calculateAssignmentStats();
+    displayResultsSummary(stats);
+    displayAssignmentTable();
+    
+    console.log('📊 Risultati assegnazione visualizzati');
+}
+
+// ===================================
+// AGGIORNAMENTO HTML NECESSARIO
+// ===================================
+
+/*
+Nel file index.html, nella sezione con id="assignment-results", 
+sostituisci il div con class="results-actions" con questo:
+
+<div class="results-actions">
+    <button class="btn btn-success" onclick="confirmAssignments()">
+        ✅ Conferma Assegnazioni
+    </button>
+    <button class="btn btn-warning" onclick="showManualEdit()">
+        ✏️ Modifica Manualmente
+    </button>
+    <button class="btn btn-primary" onclick="exportAssignmentTable()" style="background: linear-gradient(135deg, #27ae60, #229954);">
+        📊 Esporta Tabella CSV
+    </button>
+    <button class="btn btn-info" onclick="exportAssignments()">
+        📄 Esporta Report Completo
+    </button>
+</div>
+*/
+
 // ===================================
 // VISUALIZZAZIONE RISULTATI
 // ===================================

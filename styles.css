@@ -699,3 +699,106 @@ input[type="file"]:hover {
 
 .hidden { display: none; }
 .visible { display: block; }
+
+/* ===================================
+   STILI AGGIUNTIVI PER BOTTONE EXPORT
+   Aggiungi alla fine del file styles.css
+   ================================== */
+
+/* Bottone export tabella specifico */
+.btn-export-table {
+    background: linear-gradient(135deg, #27ae60, #229954) !important;
+    color: white !important;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin: 5px;
+    box-shadow: 0 3px 12px rgba(39, 174, 96, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-export-table:hover {
+    background: linear-gradient(135deg, #229954, #1e8449) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 18px rgba(39, 174, 96, 0.4);
+}
+
+.btn-export-table:active {
+    transform: translateY(0);
+}
+
+/* Effetto pulse per attirare l'attenzione */
+.btn-export-table::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.btn-export-table:hover::before {
+    left: 100%;
+}
+
+/* Stili per la sezione azioni risultati */
+.results-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+}
+
+/* Responsive per i bottoni */
+@media (max-width: 768px) {
+    .results-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .results-actions .btn {
+        width: 100%;
+        max-width: 300px;
+        margin: 5px 0;
+    }
+}
+
+/* Stile per messaggio di successo export */
+.export-success {
+    background: #d4edda;
+    color: #155724;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+    margin: 15px 0;
+    font-weight: 500;
+}
+
+/* Stile per distinguere i bottoni di export */
+.btn-export-table {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Icona animata per il download */
+.btn-export-table:hover {
+    animation: downloadPulse 0.6s ease-in-out;
+}
+
+@keyframes downloadPulse {
+    0%, 100% { transform: translateY(-2px) scale(1); }
+    50% { transform: translateY(-2px) scale(1.05); }
+}
