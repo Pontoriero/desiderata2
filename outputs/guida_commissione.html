@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guida Commissione Orario — Sistema MSL Blaise Pascal</title>
+<style>
+  /* ===== FONT & BASE ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #222;
+    background: #fff;
+  }
+
+  /* ===== LAYOUT ===== */
+  .page { max-width: 800px; margin: 0 auto; padding: 30px 40px; }
+
+  /* ===== HEADER ===== */
+  .cover {
+    text-align: center;
+    padding: 60px 40px 50px;
+    background: linear-gradient(135deg, #1a5276, #2980b9);
+    color: white;
+    border-radius: 8px;
+    margin-bottom: 40px;
+    page-break-after: always;
+  }
+  .cover h1 { font-size: 24pt; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 14pt; opacity: 0.9; margin-bottom: 30px; }
+  .cover .meta { font-size: 10pt; opacity: 0.75; }
+  .cover .logo { font-size: 48pt; margin-bottom: 20px; }
+
+  /* ===== TOC ===== */
+  .toc { background: #f4f8fb; border-left: 4px solid #2980b9; padding: 20px 25px; border-radius: 4px; margin-bottom: 40px; page-break-after: always; }
+  .toc h2 { color: #1a5276; margin-bottom: 15px; font-size: 14pt; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: #2980b9; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc .sub { margin-left: 20px; font-size: 10pt; color: #555; }
+
+  /* ===== SECTIONS ===== */
+  .section { margin-bottom: 40px; }
+  h2.section-title {
+    font-size: 16pt;
+    color: #1a5276;
+    border-bottom: 2px solid #2980b9;
+    padding-bottom: 6px;
+    margin-bottom: 20px;
+    page-break-after: avoid;
+  }
+  h3 { font-size: 12pt; color: #2c3e50; margin: 18px 0 8px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  ul, ol { padding-left: 22px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+
+  /* ===== CALLOUT BOXES ===== */
+  .box { border-radius: 5px; padding: 14px 18px; margin: 16px 0; page-break-inside: avoid; }
+  .box-info    { background: #eaf4fb; border-left: 4px solid #2980b9; }
+  .box-warning { background: #fef9e7; border-left: 4px solid #f39c12; }
+  .box-tip     { background: #eafaf1; border-left: 4px solid #27ae60; }
+  .box-danger  { background: #fdedec; border-left: 4px solid #e74c3c; }
+  .box strong { display: block; margin-bottom: 4px; }
+
+  /* ===== TABLES ===== */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #2980b9; color: white; text-align: left; padding: 8px 10px; }
+  td { padding: 7px 10px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8f9fa; }
+  .col-small { width: 120px; }
+  .col-mid   { width: 180px; }
+
+  /* ===== MOCKUP ===== */
+  .mockup {
+    background: #f8f9fa;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 9.5pt;
+    margin: 14px 0;
+    white-space: pre;
+    page-break-inside: avoid;
+    overflow: hidden;
+  }
+  .mockup-label { font-family: Arial; font-size: 9pt; color: #888; margin-bottom: 4px; font-style: italic; }
+
+  /* ===== STEPS ===== */
+  .steps { counter-reset: step; }
+  .step { display: flex; gap: 14px; margin-bottom: 14px; align-items: flex-start; page-break-inside: avoid; }
+  .step-num {
+    background: #2980b9; color: white;
+    border-radius: 50%; width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 11pt; flex-shrink: 0; margin-top: 2px;
+  }
+  .step-body { flex: 1; }
+  .step-body strong { display: block; margin-bottom: 3px; }
+
+  /* ===== TAB MOCKUP ===== */
+  .tabs-bar {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    background: #ecf0f1; padding: 8px; border-radius: 6px 6px 0 0; margin-bottom: 0;
+  }
+  .tab-btn {
+    background: white; border: 1px solid #bdc3c7; border-radius: 4px;
+    padding: 5px 10px; font-size: 9.5pt; color: #2c3e50; cursor: default;
+  }
+  .tab-btn.active { background: #2980b9; color: white; border-color: #2980b9; }
+  .tab-content-box {
+    border: 1px solid #bdc3c7; border-top: none;
+    padding: 12px; border-radius: 0 0 6px 6px;
+    background: white; font-size: 9.5pt; color: #555;
+    margin-bottom: 16px;
+  }
+
+  /* ===== BADGE ===== */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 9pt; font-weight: bold; }
+  .badge-green  { background: #d5f5e3; color: #1e8449; }
+  .badge-orange { background: #fdebd0; color: #d35400; }
+  .badge-red    { background: #fadbd8; color: #a93226; }
+  .badge-blue   { background: #d6eaf8; color: #1a5276; }
+  .badge-gray   { background: #eaecee; color: #555; }
+
+  /* ===== PRINT ===== */
+  @media print {
+    body { font-size: 10.5pt; }
+    .page { padding: 0; max-width: 100%; }
+    .cover { border-radius: 0; margin-bottom: 0; }
+    a { color: inherit; text-decoration: none; }
+    h2.section-title { page-break-before: always; }
+    h2.section-title:first-child { page-break-before: avoid; }
+    .no-break { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ==================== COPERTINA ==================== -->
+<div class="cover">
+  <div class="logo">📋</div>
+  <h1>Sistema Gestione Orari</h1>
+  <div class="subtitle">Guida per la Commissione Orario</div>
+  <p style="margin-top:20px;font-size:11pt;opacity:0.85;">Assegnazione automatica dei Moduli Settimanali Liberi (MSL)</p>
+  <div class="meta" style="margin-top:30px;">
+    Istituto Blaise Pascal — Reggio Emilia<br>
+    Anno scolastico 2026-2027<br>
+    <em>Prof. Francesco Pontoriero</em>
+  </div>
+</div>
+
+<!-- ==================== INDICE ==================== -->
+<div class="toc">
+  <h2>📑 Indice</h2>
+  <ol>
+    <li><a href="#intro">Introduzione — cosa fa il sistema e perché è utile</a></li>
+    <li><a href="#dati">Preparazione dei file CSV</a>
+      <ol class="sub">
+        <li><a href="#dati-desiderata">File desiderata (da Google Forms)</a></li>
+        <li><a href="#dati-storico">File storico anni precedenti</a></li>
+        <li><a href="#dati-msl3">Nota importante su MSL3</a></li>
+      </ol>
+    </li>
+    <li><a href="#guida">Guida passo-passo per tab</a>
+      <ol class="sub">
+        <li><a href="#tab-importa">Importa Dati</a></li>
+        <li><a href="#tab-panoramica">Panoramica</a></li>
+        <li><a href="#tab-docenti">Docenti</a></li>
+        <li><a href="#tab-assegnazione">Assegnazione MSL</a></li>
+        <li><a href="#tab-analisi">Analisi</a></li>
+        <li><a href="#tab-export">Export</a></li>
+      </ol>
+    </li>
+    <li><a href="#risultati">Come leggere il CSV esportato</a></li>
+    <li><a href="#faq">Domande frequenti e risoluzione problemi</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 1. INTRODUZIONE ==================== -->
+<div class="section" id="intro">
+  <h2 class="section-title">1. Introduzione</h2>
+
+  <h3>Cosa fa il sistema</h3>
+  <p>Il sistema assegna automaticamente i <strong>Moduli Settimanali Liberi (MSL)</strong> ai docenti dell'istituto, tenendo conto di tre criteri fondamentali:</p>
+  <ul>
+    <li><strong>Desiderata dei docenti</strong> — le preferenze compilate nel form Google</li>
+    <li><strong>Rotazione obbligatoria</strong> — chi ha lo stesso giorno da 3 o più anni consecutivi deve cambiare</li>
+    <li><strong>Bilanciamento del carico</strong> — i docenti sono distribuiti il più possibile uniformemente sui 6 giorni (Lunedì–Sabato)</li>
+  </ul>
+
+  <div class="box box-tip">
+    <strong>✅ Nessuna installazione richiesta</strong>
+    Il sistema è accessibile direttamente dal browser (Chrome, Firefox, Edge, Safari) all'indirizzo:<br><br>
+    <span style="font-size:13pt;font-family:'Courier New',monospace;background:#d6eaf8;padding:4px 10px;border-radius:4px;">https://desiderata2025.netlify.app/</span><br><br>
+    Non serve installare nulla. Basta aprire il link e il sistema è pronto all'uso.
+  </div>
+
+  <h3>Perché è utile</h3>
+  <p>Ogni anno la Commissione Orario deve assegnare manualmente gli MSL a decine di docenti, bilanciando preferenze, rotazioni e carichi giornalieri. Con 93 docenti e 6 giorni disponibili, farlo a mano richiede ore e produce facilmente errori. Questo sistema completa il lavoro in pochi secondi e consegna un CSV già pronto da revisionare.</p>
+
+  <div class="box box-info">
+    <strong>ℹ️ Il sistema è uno strumento di supporto</strong>
+    L'output finale va comunque revisionato dalla Commissione. Il sistema segnala automaticamente i casi dubbi (match approssimativi, rotazioni mancate, giorni sovraccarichi) per facilitare la verifica.
+  </div>
+</div>
+
+<!-- ==================== 2. PREPARAZIONE DATI ==================== -->
+<div class="section" id="dati">
+  <h2 class="section-title">2. Preparazione dei file CSV</h2>
+
+  <h3 id="dati-desiderata">2.1 File desiderata (da Google Forms)</h3>
+  <p>Il file si ottiene esportando le risposte del form Google come CSV:</p>
+
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Apri Google Forms</strong> — vai al modulo dei desiderata 2026-27</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Tab "Risposte"</strong> → clicca l'icona del foglio di calcolo Google Sheets</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>In Google Sheets</strong> → File → Scarica → Valori separati da virgola (.csv)</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Salva il file</strong> con un nome riconoscibile, es. <code>desiderata_2026-27.csv</code></div></div>
+  </div>
+
+  <p>Il file avrà queste colonne (nell'ordine esatto — non modificare mai l'ordine):</p>
+
+  <table>
+    <tr><th class="col-small">Colonna</th><th>Contenuto</th><th>Esempio</th></tr>
+    <tr><td>A (0)</td><td>Timestamp compilazione</td><td>08/07/2026 13.49</td></tr>
+    <tr><td>B (1)</td><td>Email docente</td><td>giulia.talami@iispascal.it</td></tr>
+    <tr><td>C (2)</td><td>Cognome</td><td>TALAMI</td></tr>
+    <tr><td>D (3)</td><td>Nome</td><td>GIULIA</td></tr>
+    <tr><td>E (4)</td><td>Ore settimanali</td><td>14</td></tr>
+    <tr><td>F (5)</td><td>MSL Opzione 1 (prima scelta)</td><td>Sabato</td></tr>
+    <tr><td>G (6)</td><td>MSL Opzione 2 (seconda scelta)</td><td>Mercoledì</td></tr>
+    <tr><td>H (7)</td><td>MSL Opzione 3 (fallback)</td><td>Giovedì</td></tr>
+    <tr><td>I–N (8–13)</td><td>Ore non desiderate (Lun–Sab)</td><td>"1, 6"</td></tr>
+    <tr><td>O (14)</td><td>Preferenza orario compatto/buchi</td><td>Compatto</td></tr>
+    <tr><td>P (15)</td><td>Note part-time</td><td>(vuoto)</td></tr>
+    <tr><td>Q (16)</td><td>Note libere</td><td>(vuoto)</td></tr>
+  </table>
+
+  <div class="box box-warning">
+    <strong>⚠️ Non modificare il file CSV prima di caricarlo</strong>
+    Non aggiungere colonne, non riordinare le righe, non cambiare intestazioni. Il sistema legge le colonne per posizione: una modifica manuale può causare errori di parsing silenziosi.
+  </div>
+
+  <h3 id="dati-storico">2.2 File storico anni precedenti</h3>
+  <p>Questo file contiene la storia degli MSL assegnati negli anni passati. Va preparato/aggiornato manualmente ogni anno in Excel o LibreOffice e salvato come CSV.</p>
+
+  <p>Formato richiesto (prima riga = intestazioni, poi una riga per docente):</p>
+
+  <div class="mockup-label">Esempio file storico.csv</div>
+  <div class="mockup">Cognome,Nome,Ore,2026-2027,2025-2026,2024-2025,2023-2024,2022-23,2021-22
+Angeli,Annalisa,18,,Venerdì,Venerdì,Venerdì,Venerdì,Venerdì
+Bianchi,Marco,18,,Martedì,Lunedì,Martedì,Mercoledì,Martedì
+Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
+
+  <table>
+    <tr><th class="col-small">Colonna</th><th>Anno</th><th>Note</th></tr>
+    <tr><td>A (0)</td><td>Cognome</td><td></td></tr>
+    <tr><td>B (1)</td><td>Nome</td><td></td></tr>
+    <tr><td>C (2)</td><td>Ore</td><td></td></tr>
+    <tr><td>D (3)</td><td>2026-2027</td><td>Lasciare <strong>vuoto</strong> — verrà compilato dal sistema</td></tr>
+    <tr><td>E (4)</td><td>2025-2026</td><td>Anno più recente — il sistema parte da qui per le rotazioni</td></tr>
+    <tr><td>F (5)</td><td>2024-2025</td><td></td></tr>
+    <tr><td>G (6)</td><td>2023-2024</td><td></td></tr>
+    <tr><td>H (7)</td><td>2022-23</td><td></td></tr>
+    <tr><td>I (8)</td><td>2021-22</td><td></td></tr>
+  </table>
+
+  <div class="box box-danger">
+    <strong>🚨 Attenzione: la colonna 2026-2027 (D) deve essere sempre vuota</strong>
+    Se per errore contiene valori, il sistema li legge come assegnazione già effettuata e non calcola le rotazioni correttamente. Svuotare la colonna D prima di ogni nuova esportazione.
+  </div>
+
+  <h3 id="dati-msl3">2.3 Nota importante su MSL3</h3>
+
+  <div class="box box-warning">
+    <strong>⚠️ MSL3 non è riservato ai part-time</strong>
+    <p style="margin-top:6px;">MSL3 (la terza scelta nel form) è un <strong>fallback puro della Commissione</strong>, disponibile per tutti i docenti indipendentemente dalle ore contrattuali. Il sistema lo assegna <em>solo</em> se sia MSL1 che MSL2 risultano entrambi saturi — non è mai la prima o seconda preferenza, ma una valvola di sicurezza.</p>
+    <p style="margin-top:6px;">Nell'export CSV le colonne <strong>Terza_Richiesta</strong> e <strong>Fallback_MSL3</strong> mostrano rispettivamente qual era la terza scelta del docente e se è stata effettivamente usata.</p>
+  </div>
+</div>
+
+<!-- ==================== 3. GUIDA PASSO-PASSO ==================== -->
+<div class="section" id="guida">
+  <h2 class="section-title">3. Guida passo-passo per tab</h2>
+
+  <p>L'applicazione è organizzata in 6 tab, da usare nell'ordine indicato:</p>
+
+  <div class="tabs-bar">
+    <div class="tab-btn">📊 Panoramica</div>
+    <div class="tab-btn active">📁 Importa Dati</div>
+    <div class="tab-btn">👥 Docenti</div>
+    <div class="tab-btn">🔍 Dettaglio Docente</div>
+    <div class="tab-btn">🎯 Assegnazione MSL</div>
+    <div class="tab-btn">📈 Analisi</div>
+  </div>
+  <div class="tab-content-box">[contenuto del tab selezionato]</div>
+
+  <!-- TAB 1 -->
+  <h3 id="tab-importa">📁 Tab "Importa Dati"</h3>
+  <p>Primo passo: caricare i due file CSV.</p>
+
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Sezione "Importa Desiderata"</strong> — clicca "Scegli file", seleziona il CSV esportato da Google Forms, poi clicca <em>Carica Desiderata</em>. Un messaggio verde conferma il caricamento.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Sezione "Importa Storico"</strong> — carica il CSV storico allo stesso modo con <em>Carica Storico</em>.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Verifica</strong> — torna alla tab Panoramica per controllare i contatori.</div></div>
+  </div>
+
+  <div class="box box-tip">
+    <strong>💡 Dati di test</strong>
+    Se vuoi provare il sistema senza caricare file reali, usa il pulsante <em>"Carica Dati di Test"</em>. Carica un dataset di esempio con cui esplorare tutte le funzionalità in sicurezza.
+  </div>
+
+  <!-- TAB 2 -->
+  <h3 id="tab-panoramica">📊 Tab "Panoramica"</h3>
+  <p>Mostra un riepilogo immediato dopo il caricamento:</p>
+
+  <table>
+    <tr><th class="col-mid">Indicatore</th><th>Significato</th></tr>
+    <tr><td><strong>Totale Docenti</strong></td><td>Numero complessivo di docenti nel sistema (da entrambi i file)</td></tr>
+    <tr><td><strong>Con Desiderata 2026-27</strong></td><td>Quanti hanno compilato il form Google</td></tr>
+    <tr><td><strong>Con Storico</strong></td><td>Quanti hanno almeno un anno nello storico</td></tr>
+    <tr><td><strong>Devono Ruotare</strong></td><td>Quanti hanno lo stesso MSL da 3+ anni — rotazione obbligatoria</td></tr>
+  </table>
+
+  <p>Sotto i contatori, il grafico <em>"Distribuzione MSL Richiesti"</em> mostra quante preferenze (MSL1+MSL2) si concentrano su ciascun giorno — utile per anticipare i giorni più contesi.</p>
+
+  <!-- TAB 3 -->
+  <h3 id="tab-docenti">👥 Tab "Docenti"</h3>
+  <p>Elenco completo di tutti i docenti. Ogni docente è mostrato in una card:</p>
+
+  <div class="mockup-label">Esempio card docente</div>
+  <div class="mockup">┌─────────────────────────────────────────────────────┐
+│ PORTIOLI Yuri              [🔄 DEVE RUOTARE]        │
+├─────────────────────────────────────────────────────┤
+│ Ore settimanali:    18                              │
+│ MSL desiderato:     Sabato / Lunedì / Mercoledì     │
+│ Ultimo MSL assegnato: Sabato                        │
+│ Anni consecutivi:   5                               │
+│ Ore non desiderate: Lun: 1,6 • Mar: 3              │
+└─────────────────────────────────────────────────────┘</div>
+
+  <table>
+    <tr><th class="col-mid">Campo</th><th>Significato</th></tr>
+    <tr><td><strong>MSL desiderato</strong></td><td>Le scelte compilate nel form: prima / seconda / terza (se presente). La terza è un fallback.</td></tr>
+    <tr><td><strong>Ultimo MSL assegnato</strong></td><td>Il giorno assegnato nell'anno 2025-26 (dal file storico)</td></tr>
+    <tr><td><strong>Anni consecutivi</strong></td><td>Quanti anni di fila ha avuto lo stesso MSL. Da 3 in su scatta la rotazione obbligatoria.</td></tr>
+    <tr><td><span class="badge badge-red">🔄 DEVE RUOTARE</span></td><td>3+ anni stesso MSL — il sistema lo assegnerà obbligatoriamente a un giorno diverso</td></tr>
+    <tr><td><span class="badge badge-orange">⚠️ PRIORITÀ</span></td><td>2 anni stesso MSL — non obbligatorio ma suggerito cambiare</td></tr>
+  </table>
+
+  <p>Usa il campo <em>Cerca</em> per trovare un docente per nome, e il filtro a tendina per vedere solo quelli in rotazione obbligatoria, quelli senza desiderata, ecc.</p>
+
+  <!-- TAB 4 (Dettaglio) -->
+  <h3>🔍 Tab "Dettaglio Docente"</h3>
+  <p>Seleziona un singolo docente dal menu a tendina per vedere la sua scheda completa: storico anno per anno, note del form, avvisi di match approssimativo. Utile per verificare manualmente i casi dubbi prima di avviare l'assegnazione.</p>
+
+  <!-- TAB 5 -->
+  <h3 id="tab-assegnazione">🎯 Tab "Assegnazione MSL"</h3>
+  <p>Il cuore del sistema. Scegli l'algoritmo e avvia il calcolo:</p>
+
+  <table>
+    <tr><th>Algoritmo</th><th>Tempo</th><th>Quando usarlo</th></tr>
+    <tr>
+      <td><strong>⚡ Greedy</strong></td>
+      <td>~1 secondo</td>
+      <td>Prima verifica rapida, test con dati di prova, o quando si vuole un risultato immediato. Segue regole fisse nell'ordine: rotazioni → rigidi → flessibili → rimanenti.</td>
+    </tr>
+    <tr>
+      <td><strong>🧠 Simulated Annealing</strong></td>
+      <td>5–10 secondi</td>
+      <td><strong>Consigliato per l'assegnazione definitiva.</strong> Ottimizza globalmente su tutte le variabili (preferenze, rotazioni, bilanciamento). Può trovare soluzioni che il Greedy non trova.</td>
+    </tr>
+  </table>
+
+  <div class="box box-tip">
+    <strong>💡 Strategia consigliata</strong>
+    Esegui prima il Greedy per una verifica rapida. Se il risultato ha più di 5-6 conflitti, esegui il Simulated Annealing — spesso riduce i conflitti del 30-50%.
+  </div>
+
+  <p>Dopo il calcolo la pagina mostra una <strong>barra di riepilogo</strong> con 5 indicatori:</p>
+
+  <table>
+    <tr><th class="col-mid">Indicatore</th><th>Valore ideale</th><th>Significato</th></tr>
+    <tr><td><strong>Preferenze Soddisfatte</strong></td><td>&gt; 85%</td><td>Percentuale docenti con MSL1 o MSL2 soddisfatti</td></tr>
+    <tr><td><strong>Assegnati su MSL3</strong></td><td>il meno possibile</td><td>Docenti che hanno ricevuto il fallback MSL3 (tollerato, non ideale)</td></tr>
+    <tr><td><strong>Rotazioni Forzate</strong></td><td>= tutti i "Deve Ruotare"</td><td>Rotazioni obbligatorie applicate correttamente</td></tr>
+    <tr><td><strong>Conflitti Rimanenti</strong></td><td>0 (idealmente)</td><td>Docenti senza nessuna preferenza soddisfatta</td></tr>
+    <tr><td><strong>Sbilanciamento Max</strong></td><td>≤ 2</td><td>Differenza tra il giorno più affollato e quello meno affollato</td></tr>
+  </table>
+
+  <div class="box box-danger">
+    <strong>🚨 Avviso giorni sovraccarichi</strong>
+    Se un giorno supera la soglia di (N÷6 + 2) docenti, compare un banner rosso con il nome del giorno e il conteggio. Con 93 docenti la soglia è 18. In condizioni normali questo avviso non appare.
+  </div>
+
+  <!-- TAB 6 -->
+  <h3 id="tab-analisi">📈 Tab "Analisi"</h3>
+  <p>Dopo l'assegnazione, questa tab mostra:</p>
+  <ul>
+    <li><strong>Rotazioni obbligatorie applicate</strong> — elenco docenti che hanno cambiato giorno per obbligo, con il giorno di partenza e quello assegnato</li>
+    <li><strong>Rotazioni consigliate</strong> — docenti con 2 anni consecutivi (non obbligatorio ma segnalato)</li>
+    <li><strong>Distribuzione per giorno</strong> — grafico con quanti docenti sono stati assegnati a ciascun giorno</li>
+    <li><strong>Conflitti</strong> — docenti per cui nessuna preferenza era soddisfacibile</li>
+  </ul>
+
+  <!-- EXPORT -->
+  <h3 id="tab-export">📄 Export</h3>
+  <p>Tre opzioni di esportazione disponibili nella tab "Assegnazione MSL" dopo il calcolo:</p>
+
+  <table>
+    <tr><th>Pulsante</th><th>Contenuto</th><th>Uso tipico</th></tr>
+    <tr><td><strong>Esporta Tabella CSV</strong></td><td>Una riga per docente con tutte le colonne di dettaglio</td><td>Revisione in Excel, invio agli uffici</td></tr>
+    <tr><td><strong>Esporta Report Completo</strong></td><td>CSV + testo con statistiche rotazioni e conflitti</td><td>Archivio ufficiale della Commissione</td></tr>
+    <tr><td><strong>Esporta Analisi</strong></td><td>Solo statistiche aggregate per giorno</td><td>Presentazioni, verbali</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 4. LEGGERE IL CSV ==================== -->
+<div class="section" id="risultati">
+  <h2 class="section-title">4. Come leggere il CSV esportato</h2>
+
+  <p>La <strong>Tabella CSV</strong> ha una riga per docente con queste colonne:</p>
+
+  <table>
+    <tr><th class="col-mid">Colonna</th><th>Significato e valori possibili</th></tr>
+    <tr><td><strong>Cognome / Nome / Email</strong></td><td>Dati anagrafici dal form</td></tr>
+    <tr><td><strong>Ore_Settimanali</strong></td><td>Ore dal form (usate solo per visualizzazione)</td></tr>
+    <tr><td><strong>MSL_Assegnato</strong></td><td>Il giorno assegnato definitivamente. <em>Questo è il dato da usare.</em></td></tr>
+    <tr><td><strong>Prima_Richiesta</strong></td><td>MSL1 compilato nel form</td></tr>
+    <tr><td><strong>Seconda_Richiesta</strong></td><td>MSL2 compilato nel form</td></tr>
+    <tr><td><strong>Terza_Richiesta</strong></td><td>MSL3 compilato nel form (fallback — può essere vuoto)</td></tr>
+    <tr><td><strong>Preferenza_Soddisfatta</strong></td><td><span class="badge badge-green">SÌ</span> se MSL_Assegnato = MSL1 o MSL2 &nbsp;|&nbsp; <span class="badge badge-red">NO</span> altrimenti</td></tr>
+    <tr><td><strong>Fallback_MSL3</strong></td><td><span class="badge badge-orange">SÌ</span> = assegnato su MSL3 (tollerato) &nbsp;|&nbsp; <span class="badge badge-gray">NO</span> = normale</td></tr>
+    <tr><td><strong>Anni_Stesso_MSL</strong></td><td>Anni consecutivi con lo stesso MSL (da storico)</td></tr>
+    <tr><td><strong>Ultimo_MSL</strong></td><td>MSL assegnato nel 2025-26 (anno precedente)</td></tr>
+    <tr><td><strong>Forzato_Rotazione</strong></td><td><span class="badge badge-blue">SÌ</span> = rotazione obbligatoria applicata &nbsp;|&nbsp; <span class="badge badge-gray">NO</span> = assegnazione normale</td></tr>
+    <tr><td><strong>Motivo_Assegnazione</strong></td><td>Descrizione testuale del percorso logico (vedi tabella sotto)</td></tr>
+    <tr><td><strong>Note_Docente</strong></td><td>Note libere inserite dal docente nel form</td></tr>
+  </table>
+
+  <h3>Significato dei motivi di assegnazione</h3>
+
+  <table>
+    <tr><th class="col-mid">Motivo</th><th>Significato</th><th>Azione</th></tr>
+    <tr><td>Preferenza soddisfatta</td><td>Assegnato su MSL1 o MSL2 senza problemi</td><td>Nessuna</td></tr>
+    <tr><td>Seconda preferenza per bilanciamento</td><td>MSL2 scelto per distribuire meglio il carico</td><td>Nessuna — comportamento normale</td></tr>
+    <tr><td>Rotazione obbligatoria</td><td>3+ anni stesso giorno → assegnato su MSL2/MSL1 diverso</td><td>Verificare se il docente è d'accordo</td></tr>
+    <tr><td>Fallback MSL3</td><td>MSL1 e MSL2 erano entrambi saturi — usato MSL3</td><td>Verificare se accettabile per il docente</td></tr>
+    <tr><td>Entrambe le preferenze piene</td><td>MSL1 e MSL2 saturi, nessun MSL3 disponibile → giorno meno carico</td><td>⚠️ Contattare il docente per accordo</td></tr>
+    <tr><td>Giorno pieno, assegnazione automatica</td><td>Nessuna preferenza soddisfacibile → giorno con meno docenti</td><td>⚠️ Contattare il docente per accordo</td></tr>
+  </table>
+
+  <h3>Come riconoscere le rotazioni obbligatorie</h3>
+  <p>Nel CSV, le righe con rotazione obbligatoria hanno:</p>
+  <ul>
+    <li><strong>Forzato_Rotazione = SÌ</strong></li>
+    <li><strong>Motivo_Assegnazione</strong> che inizia con "Rotazione obbligatoria"</li>
+    <li><strong>MSL_Assegnato ≠ Ultimo_MSL</strong> (giorno cambiato rispetto all'anno scorso)</li>
+    <li><strong>Anni_Stesso_MSL ≥ 3</strong></li>
+  </ul>
+
+  <div class="mockup-label">Esempio riga CSV con rotazione obbligatoria</div>
+  <div class="mockup">Cognome     | MSL_Assegnato | Ultimo_MSL | Anni | Forzato | Motivo
+PORTIOLI    | Lunedì        | Sabato     |  5   |   SÌ    | Rotazione obbligatoria
+ANGELI      | Venerdì       | Venerdì    |  5   |   SÌ    | Rotazione obbligatoria</div>
+</div>
+
+<!-- ==================== 5. FAQ ==================== -->
+<div class="section" id="faq">
+  <h2 class="section-title">5. Domande frequenti e risoluzione problemi</h2>
+
+  <h3>❓ Un docente è assente dall'elenco — cosa fare?</h3>
+  <div class="box box-info">
+    <strong>Docente nuovo assunto (non nel file storico)</strong>
+    <p style="margin-top:6px;">Se ha compilato il form Google, apparirà nella tab Docenti con la card <em>"Con Storico: No"</em>. Il sistema lo assegna comunque usando le sue preferenze MSL1/MSL2, senza considerare rotazioni (non c'è storico). Nessuna azione necessaria.</p>
+    <p style="margin-top:6px;">Se non ha compilato il form, il sistema non ha informazioni su di lui. Aggiungere una riga nel file storico con le ore e lasciare vuote le colonne anno — oppure assegnarlo manualmente dopo l'export.</p>
+  </div>
+
+  <h3>❓ Nella tab Dettaglio compare "Match approssimativo — verifica": cosa significa?</h3>
+  <div class="box box-warning">
+    <strong>Cognome/nome scritto diversamente nei due file</strong>
+    <p style="margin-top:6px;">Il sistema ha collegato i due record usando un algoritmo di similarità (distanza di Levenshtein), ma la corrispondenza non è certa al 100%.</p>
+    <p style="margin-top:6px;"><strong>Cosa fare:</strong> aprire la tab Dettaglio, selezionare il docente segnalato, verificare che il nome nello storico sia effettivamente la stessa persona. Se c'è un errore (es. Salucci Debora vs Salucci Deborae), correggere il file storico e ricaricare.</p>
+  </div>
+
+  <h3>❓ Un giorno ha più docenti degli altri — è un problema?</h3>
+  <div class="box box-info">
+    <strong>Dipende dall'entità dello squilibrio</strong>
+    <p style="margin-top:6px;">Con 93 docenti su 6 giorni, l'ideale è ~15-16 per giorno. Una differenza di 1-2 docenti è normale e attesa (bilanciamento perfetto è raramente raggiungibile con tutte le preferenze). Il sistema mostra il valore <em>Sbilanciamento Max</em> nella barra di riepilogo:</p>
+    <ul style="margin-top:6px;">
+      <li><span class="badge badge-green">≤ 2</span> — ottimo, nessuna azione</li>
+      <li><span class="badge badge-orange">3–4</span> — accettabile, monitorare</li>
+      <li><span class="badge badge-red">≥ 5</span> — considerare una modifica manuale o rieseguire con Simulated Annealing</li>
+    </ul>
+    <p style="margin-top:6px;">Se compare il <strong>banner rosso "Giorni sovraccarichi"</strong>, quel giorno supera di oltre 2 unità la quota ideale — verificare se c'è una concentrazione anomala di preferenze su quel giorno.</p>
+  </div>
+
+  <h3>❓ Dopo l'export il CSV non si apre correttamente in Excel</h3>
+  <div class="box box-tip">
+    <strong>Problema di encoding / separatori</strong>
+    <ol style="margin-top:6px;">
+      <li>Aprire Excel → File → Apri → Sfoglia → selezionare il CSV</li>
+      <li>Nella procedura guidata: separatore = <strong>virgola</strong>, encoding = <strong>UTF-8 con BOM</strong></li>
+      <li>Oppure: rinominare il file in <code>.txt</code> e poi aprirlo — Excel avvierà automaticamente la procedura guidata</li>
+    </ol>
+    <p style="margin-top:6px;">Il sistema aggiunge il BOM (Byte Order Mark) automaticamente per la compatibilità con Excel italiano.</p>
+  </div>
+
+  <h3>❓ I contatori mostrano 0 rotazioni — è normale?</h3>
+  <div class="box box-danger">
+    <strong>Possibile problema: colonne storico sfasate</strong>
+    <p style="margin-top:6px;">Il sistema legge la colonna E (indice 4) come anno 2025-2026. Se il file storico non ha questa colonna nella posizione corretta, non trova dati recenti e calcola 0 anni consecutivi per tutti.</p>
+    <p style="margin-top:6px;"><strong>Verifica:</strong> aprire il file storico e controllare che la prima riga sia esattamente <code>Cognome,Nome,Ore,2026-2027,2025-2026,2024-2025,2023-2024,2022-23,2021-22</code></p>
+  </div>
+
+  <h3>❓ Voglio azzerare tutto e ricominciare</h3>
+  <div class="box box-warning">
+    <strong>Usa il pulsante "Reset Totale Sistema"</strong>
+    <p style="margin-top:6px;">Nella tab <em>Panoramica</em>, in fondo alla pagina, c'è il pulsante <span style="background:#e74c3c;color:white;padding:2px 8px;border-radius:4px;font-size:10pt;">🗑️ Reset Totale Sistema</span>. Cancella tutti i dati caricati (desiderata, storico, assegnazioni) e riporta l'applicazione allo stato iniziale. <strong>Non cancella i file CSV sul computer.</strong></p>
+  </div>
+
+  <br><br>
+
+  <div class="box box-tip" style="text-align:center;">
+    <strong>📧 Assistenza tecnica</strong><br>
+    Per problemi tecnici o richieste di modifica al sistema:<br>
+    <strong>Prof. Francesco Pontoriero</strong> — <a href="mailto:prof.pontoriero@gmail.com">prof.pontoriero@gmail.com</a><br>
+    <a href="https://francescopontoriero.altervista.org/">francescopontoriero.altervista.org</a>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #ddd;font-size:9pt;color:#888;">
+  Sistema Gestione Orari v1.1 — Istituto Blaise Pascal, Reggio Emilia &nbsp;|&nbsp; Anno scolastico 2026-2027
+</div>
+
+</div><!-- /page -->
+</body>
+</html>
