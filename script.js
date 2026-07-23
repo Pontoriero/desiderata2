@@ -92,6 +92,9 @@ function resetAllUI() {
     // Reset assegnazione MSL
     const assignmentResults = document.getElementById('assignment-results');
     if (assignmentResults) assignmentResults.style.display = 'none';
+
+    const assignmentSummary = document.getElementById('assignment-summary-section');
+    if (assignmentSummary) assignmentSummary.style.display = 'none';
     
     const assignmentProgress = document.getElementById('assignment-progress');
     if (assignmentProgress) assignmentProgress.style.display = 'none';
@@ -198,12 +201,12 @@ function exportAssignmentTable() {
 function displayAssignmentResults() {
     document.getElementById('assignment-results').style.display = 'block';
     document.getElementById('reset-btn').disabled = false;
-    
-    // Calcola statistiche
+
     const stats = calculateAssignmentStats();
     displayResultsSummary(stats);
     displayAssignmentTable();
-    
+    updateAssignmentSummary();
+
     console.log('📊 Risultati assegnazione visualizzati');
 }
 
@@ -238,13 +241,74 @@ sostituisci il div con class="results-actions" con questo:
 function displayAssignmentResults() {
     document.getElementById('assignment-results').style.display = 'block';
     document.getElementById('reset-btn').disabled = false;
-    
-    // Calcola statistiche
+
     const stats = calculateAssignmentStats();
     displayResultsSummary(stats);
     displayAssignmentTable();
-    
+    updateAssignmentSummary();
+
     console.log('📊 Risultati assegnazione visualizzati');
+}
+
+function updateAssignmentSummary() {
+    const section = document.getElementById('assignment-summary-section');
+    if (!section) return;
+
+    if (currentAssignments.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    const total = currentAssignments.length;
+    const satisfied = currentAssignments.filter(a => a.satisfied).length;
+    const satisfiedPct = Math.round((satisfied / total) * 100);
+    const fallback3 = currentAssignments.filter(a => a.fallback3).length;
+    const mustRotateTotal = integratedData.filter(t => t.mustRotate).length;
+    const rotationsApplied = currentAssignments.filter(a => a.rotationForced).length;
+
+    const satisfiedColor = satisfiedPct >= 85 ? 'green' : satisfiedPct >= 70 ? 'orange' : 'red';
+    const fallback3Color  = fallback3 === 0 ? 'green' : 'orange';
+    const rotColor        = rotationsApplied >= mustRotateTotal ? 'green' : 'red';
+
+    document.getElementById('assignment-stats-grid').innerHTML = `
+        <div class="stat-card stat-card-green">
+            <div class="stat-number">${total}</div>
+            <div class="stat-label">Assegnazioni Completate</div>
+        </div>
+        <div class="stat-card stat-card-${satisfiedColor}">
+            <div class="stat-number">${satisfiedPct}%</div>
+            <div class="stat-label">Preferenze Soddisfatte</div>
+        </div>
+        <div class="stat-card stat-card-${fallback3Color}">
+            <div class="stat-number">${fallback3}</div>
+            <div class="stat-label">Fallback MSL3</div>
+        </div>
+        <div class="stat-card stat-card-${rotColor}">
+            <div class="stat-number">${rotationsApplied}/${mustRotateTotal}</div>
+            <div class="stat-label">Rotazioni Applicate</div>
+        </div>
+    `;
+
+    const dist = {};
+    days.forEach(d => dist[d] = 0);
+    currentAssignments.forEach(a => { if (a.assignedMSL) dist[a.assignedMSL]++; });
+
+    const mean = total / days.length;
+    const container = document.getElementById('assignment-distribution');
+    container.innerHTML = '';
+
+    days.forEach(day => {
+        const count = dist[day];
+        const bar = document.createElement('div');
+        bar.className = 'day-bar';
+        if (count <= mean)         bar.classList.add('dev-low');
+        else if (count <= mean + 1) bar.classList.add('dev-mid');
+        else                        bar.classList.add('dev-high');
+        bar.innerHTML = `<strong>${day}</strong><br><span style="font-size:1.5em;">${count}</span>`;
+        container.appendChild(bar);
+    });
+
+    section.style.display = 'block';
 }
 
 function calculateAssignmentStats() {
@@ -434,6 +498,7 @@ function resetAssignments() {
         currentAssignments = [];
         document.getElementById('assignment-results').style.display = 'none';
         document.getElementById('manual-edit-section').style.display = 'none';
+        document.getElementById('assignment-summary-section').style.display = 'none';
         document.getElementById('reset-btn').disabled = true;
         
         console.log('🔄 Assegnazioni reset');
