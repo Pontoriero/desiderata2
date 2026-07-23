@@ -1324,6 +1324,10 @@ function displayTeacherDetailCard(teacher) {
                         <span class="detail-info-value">${teacher.msl2 || 'Non specificato'}</span>
                     </div>
                     <div class="detail-info-item">
+                        <span class="detail-info-label">Terza scelta (≤9h):</span>
+                        <span class="detail-info-value">${teacher.msl3 || 'Non disponibile'}</span>
+                    </div>
+                    <div class="detail-info-item">
                         <span class="detail-info-label">Flessibilità:</span>
                         <span class="detail-info-value">
                             ${teacher.msl1 !== teacher.msl2 && teacher.msl1 && teacher.msl2 ? 
@@ -1380,7 +1384,15 @@ function displayTeacherDetailCard(teacher) {
                     <p style="margin: 0; color: #495057; line-height: 1.6;">${teacher.notes}</p>
                 </div>
                 ` : ''}
-                
+
+                ${(teacher.matchWarning || (teacher.warnings && teacher.warnings.length > 0)) ? `
+                <div class="detail-section" style="border-left: 4px solid #e67e22;">
+                    <h4>⚠️ Avvisi</h4>
+                    ${teacher.matchWarning ? `<p style="color:#e67e22;margin:0 0 8px 0;">🔗 ${teacher.matchWarning}</p>` : ''}
+                    ${(teacher.warnings || []).map(w => `<p style="color:#856404;margin:0 0 4px 0;">• ${w}</p>`).join('')}
+                </div>
+                ` : ''}
+
                 <!-- Suggerimenti -->
                 ${suggestions.length > 0 ? `
                 <div class="detail-section">
@@ -1440,37 +1452,46 @@ function generateHistoryTimeline(teacher) {
     const historyItems = [];
     
     if (teacher.history) {
-        if (teacher.history.assigned2024) {
+        if (teacher.history.year2025) {
             historyItems.push({
-                year: '2024-25',
-                msl: teacher.history.assigned2024,
+                year: '2025-26',
+                msl: teacher.history.year2025,
                 current: true,
                 problematic: teacher.mustRotate
             });
         }
-        
-        if (teacher.history.history2023) {
+
+        if (teacher.history.year2024) {
+            historyItems.push({
+                year: '2024-25',
+                msl: teacher.history.year2024,
+                current: false,
+                problematic: false
+            });
+        }
+
+        if (teacher.history.year2023) {
             historyItems.push({
                 year: '2023-24',
-                msl: teacher.history.history2023,
+                msl: teacher.history.year2023,
                 current: false,
                 problematic: false
             });
         }
-        
-        if (teacher.history.history2022) {
+
+        if (teacher.history.year2022) {
             historyItems.push({
                 year: '2022-23',
-                msl: teacher.history.history2022,
+                msl: teacher.history.year2022,
                 current: false,
                 problematic: false
             });
         }
-        
-        if (teacher.history.history2021) {
+
+        if (teacher.history.year2021) {
             historyItems.push({
                 year: '2021-22',
-                msl: teacher.history.history2021,
+                msl: teacher.history.year2021,
                 current: false,
                 problematic: false
             });
@@ -1727,10 +1748,11 @@ function parseDesiderataCSV(csvText) {
             hours: parseInt(columns[4]) || 0,
             msl1: columns[5] || '',
             msl2: columns[6] || '',
-            unwantedHours: parseUnwantedHours(columns.slice(7, 13)), // Colonne 7-12
-            schedulePreference: columns[13] || '',
-            partTimeNotes: columns[14] || '',
-            notes: columns[15] || ''
+            msl3: columns[7] || '',
+            unwantedHours: parseUnwantedHours(columns.slice(8, 14)), // [8]=Lun [9]=Mar [10]=Mer [11]=Gio [12]=Ven [13]=Sab
+            schedulePreference: columns[14] || '',
+            partTimeNotes: columns[15] || '',
+            notes: columns[16] || ''
         };
         
         if (teacher.surname && teacher.surname !== 'Cognome') {
@@ -1759,10 +1781,12 @@ function parseHistoryCSV(csvText) {
             surname: columns[0] || '',
             name: columns[1] || '',
             hours: parseFloat(columns[2]) || 0,
-            assigned2024: columns[3] || '', // 2024-2025
-            history2023: columns[4] || '', // 2023-2024
-            history2022: columns[5] || '', // 2022-23
-            history2021: columns[6] || ''  // 2021-22
+            year2026: columns[3] || '',   // 2026-2027 (da assegnare)
+            year2025: columns[4] || '',   // 2025-2026
+            year2024: columns[5] || '',   // 2024-2025
+            year2023: columns[6] || '',   // 2023-2024
+            year2022: columns[7] || '',   // 2022-23
+            year2021: columns[8] || ''    // 2021-22
         };
         
         if (teacher.surname && teacher.surname !== 'Cognome') {
@@ -1823,8 +1847,9 @@ function integrateData() {
     
     // Prima passa: docenti con desiderata
     desiderataData.forEach(teacher => {
-        const historyMatch = findHistoryMatch(teacher);
-        
+        const matchResult = findHistoryMatchDetail(teacher);
+        const historyMatch = matchResult ? matchResult.data : null;
+
         const integrated = {
             ...teacher,
             hasDesiderata: true,
@@ -1832,9 +1857,13 @@ function integrateData() {
             history: historyMatch || {},
             rotationYears: calculateRotationYears(historyMatch),
             mustRotate: shouldRotate(historyMatch),
-            lastMSL: getLastMSL(historyMatch)
+            lastMSL: getLastMSL(historyMatch),
+            matchWarning: matchResult?.needsReview
+                ? `Match approssimativo con "${historyMatch.surname} ${historyMatch.name}" — verifica`
+                : null
         };
-        
+
+        filterMSLByHours(integrated);
         integratedData.push(integrated);
     });
     
@@ -1848,6 +1877,7 @@ function integrateData() {
                 hours: historyTeacher.hours,
                 msl1: '',
                 msl2: '',
+                msl3: '',
                 hasDesiderata: false,
                 hasHistory: true,
                 history: historyTeacher,
@@ -1870,22 +1900,61 @@ function integrateData() {
     }
 }
 
+function normalizeString(s) {
+    return (s || '').toLowerCase().trim()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/\s+/g, ' ');
+}
+
+function levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m + 1}, (_, i) =>
+        Array.from({length: n + 1}, (_, j) => i === 0 ? j : j === 0 ? i : 0)
+    );
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = a[i-1] === b[j-1]
+                ? dp[i-1][j-1]
+                : 1 + Math.min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1]);
+    return dp[m][n];
+}
+
+function filterMSLByHours(teacher) {
+    if ((teacher.hours || 0) > 9 && teacher.msl3) {
+        teacher.warnings = teacher.warnings || [];
+        teacher.warnings.push(`MSL3 (${teacher.msl3}) ignorato: ${teacher.hours}h > 9h`);
+        teacher.msl3 = '';
+    }
+}
+
+function findHistoryMatchDetail(teacher) {
+    for (const h of historyData) {
+        if (matchTeacher(teacher, h)) return { data: h, confidence: 'exact', needsReview: false };
+    }
+    const s1 = normalizeString(teacher.surname);
+    for (const h of historyData) {
+        if (normalizeString(h.surname) !== s1) continue;
+        const n1 = normalizeString(teacher.name);
+        const n2 = normalizeString(h.name);
+        if (!n1 || !n2) continue;
+        if (levenshtein(n1, n2) <= 2) return { data: h, confidence: 'fuzzy', needsReview: true };
+    }
+    return null;
+}
+
 function findHistoryMatch(teacher) {
-    return historyData.find(h => matchTeacher(teacher, h));
+    const result = findHistoryMatchDetail(teacher);
+    return result ? result.data : null;
 }
 
 function matchTeacher(teacher1, teacher2) {
-    const surname1 = teacher1.surname.toLowerCase().trim();
-    const surname2 = teacher2.surname.toLowerCase().trim();
-    const name1 = (teacher1.name || '').toLowerCase().trim();
-    const name2 = (teacher2.name || '').toLowerCase().trim();
-    
-    // Match esatto cognome + nome
-    if (surname1 === surname2 && name1 === name2) return true;
-    
-    // Match solo cognome se uno dei nomi è vuoto
-    if (surname1 === surname2 && (!name1 || !name2)) return true;
-    
+    const s1 = normalizeString(teacher1.surname);
+    const s2 = normalizeString(teacher2.surname);
+    if (s1 !== s2) return false;
+    const n1 = normalizeString(teacher1.name);
+    const n2 = normalizeString(teacher2.name);
+    if (n1 === n2) return true;
+    if (!n1 || !n2) return true;
     return false;
 }
 
@@ -1893,17 +1962,19 @@ function calculateRotationYears(history) {
     if (!history) return 0;
     
     const mslHistory = [
-        history.assigned2024,
-        history.history2023,
-        history.history2022,
-        history.history2021
-    ].filter(msl => msl && msl.trim());
-    
+        history.year2025,
+        history.year2024,
+        history.year2023,
+        history.year2022,
+        history.year2021
+    ].filter(msl => msl && msl.trim())
+     .map(msl => msl.trim().toLowerCase());
+
     if (mslHistory.length === 0) return 0;
-    
+
     const currentMSL = mslHistory[0];
     let consecutive = 1;
-    
+
     for (let i = 1; i < mslHistory.length; i++) {
         if (mslHistory[i] === currentMSL) {
             consecutive++;
@@ -1922,10 +1993,11 @@ function shouldRotate(history) {
 function getLastMSL(history) {
     if (!history) return 'Sconosciuto';
     
-    if (history.assigned2024) return history.assigned2024;
-    if (history.history2023) return history.history2023;
-    if (history.history2022) return history.history2022;
-    if (history.history2021) return history.history2021;
+    if (history.year2025) return history.year2025;
+    if (history.year2024) return history.year2024;
+    if (history.year2023) return history.year2023;
+    if (history.year2022) return history.year2022;
+    if (history.year2021) return history.year2021;
     
     return 'Sconosciuto';
 }
@@ -1971,6 +2043,7 @@ function updateMSLDistribution() {
     integratedData.forEach(teacher => {
         if (teacher.msl1) distribution[teacher.msl1]++;
         if (teacher.msl2 && teacher.msl2 !== teacher.msl1) distribution[teacher.msl2]++;
+        if (teacher.msl3 && teacher.msl3 !== teacher.msl1 && teacher.msl3 !== teacher.msl2) distribution[teacher.msl3]++;
     });
     
     const container = document.getElementById('msl-distribution');
@@ -2033,11 +2106,9 @@ function createTeacherCard(teacher) {
     }
     
     // MSL info
-    const mslInfo = !teacher.hasDesiderata ? 
-        'NON COMPILATO' :
-        teacher.msl1 === teacher.msl2 ? 
-            teacher.msl1 || 'Non specificato' : 
-            `${teacher.msl1 || 'N/A'} / ${teacher.msl2 || 'N/A'}`;
+    const mslParts = [teacher.msl1, teacher.msl2, teacher.msl3]
+        .filter((d, i, arr) => d && arr.indexOf(d) === i);
+    const mslInfo = !teacher.hasDesiderata ? 'NON COMPILATO' : mslParts.join(' / ') || 'Non specificato';
     
     // Badge rotazione
     let rotationBadge = '';
@@ -2190,6 +2261,7 @@ function analyzeMSLConflicts() {
     integratedData.filter(t => t.hasDesiderata).forEach(teacher => {
         if (teacher.msl1) distribution[teacher.msl1].push(teacher);
         if (teacher.msl2 && teacher.msl2 !== teacher.msl1) distribution[teacher.msl2].push(teacher);
+        if (teacher.msl3 && teacher.msl3 !== teacher.msl1 && teacher.msl3 !== teacher.msl2) distribution[teacher.msl3].push(teacher);
     });
     
     const conflicts = [];
@@ -2272,41 +2344,45 @@ function loadSampleData() {
             surname: 'Angeli',
             name: 'Annalisa',
             hours: 18,
-            assigned2024: 'Venerdì',
-            history2023: 'Venerdì',
-            history2022: 'Venerdì',
-            history2021: 'Venerdì',
-            check: 'stesso giorno'
+            year2026: '',
+            year2025: 'Venerdì',
+            year2024: 'Venerdì',
+            year2023: 'Venerdì',
+            year2022: 'Venerdì',
+            year2021: 'Venerdì'
         },
         {
             surname: 'Rossi',
             name: 'Mario',
             hours: 18,
-            assigned2024: 'Lunedì',
-            history2023: 'Martedì',
-            history2022: 'Mercoledì',
-            history2021: 'Lunedì',
-            check: 'giorni diversi'
+            year2026: '',
+            year2025: 'Lunedì',
+            year2024: 'Martedì',
+            year2023: 'Mercoledì',
+            year2022: 'Lunedì',
+            year2021: 'Martedì'
         },
         {
             surname: 'Bianchi',
             name: 'Giulia',
             hours: 12,
-            assigned2024: 'Mercoledì',
-            history2023: 'Mercoledì',
-            history2022: 'Giovedì',
-            history2021: 'Mercoledì',
-            check: 'giorni diversi'
+            year2026: '',
+            year2025: 'Mercoledì',
+            year2024: 'Mercoledì',
+            year2023: 'Giovedì',
+            year2022: 'Mercoledì',
+            year2021: 'Mercoledì'
         },
         {
             surname: 'Verdi',
             name: 'Francesco',
             hours: 18,
-            assigned2024: 'Sabato',
-            history2023: 'Sabato',
-            history2022: 'Sabato',
-            history2021: 'Sabato',
-            check: 'stesso giorno'
+            year2026: '',
+            year2025: 'Sabato',
+            year2024: 'Sabato',
+            year2023: 'Sabato',
+            year2022: 'Sabato',
+            year2021: 'Sabato'
         }
     ];
     
@@ -2331,11 +2407,11 @@ function exportData() {
     }
     
     const headers = [
-        'Cognome', 'Nome', 'Ore', 'Email', 'MSL1', 'MSL2', 
-        'Anni Stesso MSL', 'Deve Ruotare', 'Ultimo MSL', 
+        'Cognome', 'Nome', 'Ore', 'Email', 'MSL1', 'MSL2', 'MSL3',
+        'Anni Stesso MSL', 'Deve Ruotare', 'Ultimo MSL',
         'Preferenza Orario', 'Note'
     ];
-    
+
     const rows = integratedData.map(teacher => [
         teacher.surname,
         teacher.name || '',
@@ -2343,6 +2419,7 @@ function exportData() {
         teacher.email || '',
         teacher.msl1 || '',
         teacher.msl2 || '',
+        teacher.msl3 || '',
         teacher.rotationYears || 0,
         teacher.mustRotate ? 'SI' : 'NO',
         teacher.lastMSL,
@@ -2387,7 +2464,7 @@ ${missingDesiderata.map(t => `- ${t.surname} ${t.name || ''}`).join('\n')}
 
 DISTRIBUZIONE MSL RICHIESTI:
 ${days.map(day => {
-    const count = integratedData.filter(t => t.msl1 === day || t.msl2 === day).length;
+    const count = integratedData.filter(t => t.msl1 === day || t.msl2 === day || t.msl3 === day).length;
     return `- ${day}: ${count} richieste`;
 }).join('\n')}
 
