@@ -7,7 +7,7 @@ function resetAllData() {
 
 Questa azione cancellerà DEFINITIVAMENTE tutti i dati:
 
-• 📊 Desiderata 2025-26 caricati
+• 📊 Desiderata 2026-27 caricati
 • 📋 Storico anni precedenti  
 • 🎯 Assegnazioni MSL calcolate
 • 💾 Tutti i dati salvati nel browser
@@ -367,14 +367,14 @@ function confirmAssignments() {
         return;
     }
     
-    const confirmed = confirm(`Confermi le ${currentAssignments.length} assegnazioni MSL?\n\nQueste diventeranno le assegnazioni ufficiali per l'anno 2025-26.`);
+    const confirmed = confirm(`Confermi le ${currentAssignments.length} assegnazioni MSL?\n\nQueste diventeranno le assegnazioni ufficiali per l'anno 2026-27.`);
     
     if (confirmed) {
         // Applica le assegnazioni ai dati integrati
         currentAssignments.forEach(assignment => {
             const teacher = integratedData.find(t => getTeacherId(t) === assignment.teacherId);
             if (teacher) {
-                teacher.assignedMSL2025 = assignment.assignedMSL;
+                teacher.assignedMSL2026 = assignment.assignedMSL;
                 teacher.assignmentReason = assignment.reason;
                 teacher.assignmentSatisfied = assignment.satisfied;
             }
@@ -504,7 +504,7 @@ function exportAssignments() {
     
     // CSV delle assegnazioni
     const headers = [
-        'Cognome', 'Nome', 'Email', 'Ore', 'MSL_Assegnato_2025-26', 
+        'Cognome', 'Nome', 'Email', 'Ore', 'MSL_Assegnato_2026-27',
         'MSL_Richiesto_1', 'MSL_Richiesto_2', 'Preferenza_Soddisfatta', 
         'Anni_Consecutivi_Precedenti', 'Ultimo_MSL', 'Motivo_Assegnazione'
     ];
@@ -528,7 +528,7 @@ function exportAssignments() {
         .join('\n');
     
     // Report di accompagnamento
-    const report = `REPORT ASSEGNAZIONE MSL 2025-26 - ${new Date().toLocaleDateString('it-IT')}
+    const report = `REPORT ASSEGNAZIONE MSL 2026-27 - ${new Date().toLocaleDateString('it-IT')}
 Blaise Pascal - Reggio Emilia
 
 STATISTICHE GENERALI:
@@ -558,8 +558,8 @@ Report generato automaticamente dal Sistema Gestione Orari
 `;
     
     // Download entrambi i file
-    downloadFile(csvContent, 'assegnazioni_msl_2025-26.csv', 'text/csv');
-    downloadFile(report, 'report_assegnazioni_msl_2025-26.txt', 'text/plain');
+    downloadFile(csvContent, 'assegnazioni_msl_2026-27.csv', 'text/csv');
+    downloadFile(report, 'report_assegnazioni_msl_2026-27.txt', 'text/plain');
     
     console.log('📄 Export assegnazioni completato');
 }
@@ -1314,7 +1314,7 @@ function displayTeacherDetailCard(teacher) {
                 <!-- MSL Desiderati -->
                 ${teacher.hasDesiderata ? `
                 <div class="detail-section">
-                    <h4>🗓️ MSL Desiderati 2025-26</h4>
+                    <h4>🗓️ MSL Desiderati 2026-27</h4>
                     <div class="detail-info-item">
                         <span class="detail-info-label">Prima scelta:</span>
                         <span class="detail-info-value">${teacher.msl1 || 'Non specificato'}</span>
@@ -1519,7 +1519,7 @@ function generateTeacherSuggestions(teacher) {
     // Suggerimenti dati mancanti
     if (!teacher.hasDesiderata) {
         suggestions.push({
-            text: '📋 DATI MANCANTI: Contattare il docente per compilare i desiderata 2025-26.',
+            text: '📋 DATI MANCANTI: Contattare il docente per compilare i desiderata 2026-27.',
             priority: 'priority'
         });
     }
@@ -1854,7 +1854,7 @@ function integrateData() {
                 rotationYears: calculateRotationYears(historyTeacher),
                 mustRotate: shouldRotate(historyTeacher),
                 lastMSL: getLastMSL(historyTeacher),
-                notes: 'Docente non ha compilato desiderata 2025-26'
+                notes: 'Docente non ha compilato desiderata 2026-27'
             };
             
             integratedData.push(integrated);
@@ -2156,7 +2156,7 @@ function displayAnalysis() {
         </div>
         
         <div class="analysis-section">
-            <h3>📋 Docenti Senza Desiderata 2025-26 (${missingDesiderata.length})</h3>
+            <h3>📋 Docenti Senza Desiderata 2026-27 (${missingDesiderata.length})</h3>
             ${missingDesiderata.length > 0 ? 
                 missingDesiderata.map(t => `
                     <div class="analysis-item warning">
@@ -2220,7 +2220,7 @@ function loadSampleData() {
     
     desiderataData = [
         {
-            timestamp: '14/06/2025 11:47:27',
+            timestamp: '14/06/2026 11:47:27',
             email: 'annalisa.angeli@iispascal.it',
             surname: 'Angeli',
             name: 'Annalisa',
@@ -2235,7 +2235,7 @@ function loadSampleData() {
             notes: 'Vicepresidenza - gestione amministrativa'
         },
         {
-            timestamp: '14/06/2025 08:08:46',
+            timestamp: '14/06/2026 08:08:46',
             email: 'mario.rossi@iispascal.it',
             surname: 'Rossi',
             name: 'Mario',
@@ -2251,7 +2251,7 @@ function loadSampleData() {
             notes: 'Preferenza entrate terza ora'
         },
         {
-            timestamp: '14/06/2025 09:20:11',
+            timestamp: '14/06/2026 09:20:11',
             email: 'giulia.bianchi@iispascal.it',
             surname: 'Bianchi',
             name: 'Giulia',
@@ -2373,7 +2373,7 @@ Sistema Gestione Orari - Blaise Pascal, Reggio Emilia
 
 STATISTICHE GENERALI:
 - Totale docenti: ${integratedData.length}
-- Con desiderata 2025-26: ${integratedData.filter(t => t.hasDesiderata).length}
+- Con desiderata 2026-27: ${integratedData.filter(t => t.hasDesiderata).length}
 - Con storico: ${integratedData.filter(t => t.hasHistory).length}
 
 ROTAZIONI OBBLIGATORIE (${mustRotate.length}):
@@ -2382,7 +2382,7 @@ ${mustRotate.map(t => `- ${t.surname} ${t.name || ''}: ${t.rotationYears} anni M
 ROTAZIONI CONSIGLIATE (${shouldRotate.length}):
 ${shouldRotate.map(t => `- ${t.surname} ${t.name || ''}: ${t.rotationYears} anni MSL ${t.lastMSL}`).join('\n')}
 
-DOCENTI SENZA DESIDERATA 2025-26 (${missingDesiderata.length}):
+DOCENTI SENZA DESIDERATA 2026-27 (${missingDesiderata.length}):
 ${missingDesiderata.map(t => `- ${t.surname} ${t.name || ''}`).join('\n')}
 
 DISTRIBUZIONE MSL RICHIESTI:

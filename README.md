@@ -160,10 +160,10 @@ acceptProb = exp(-(newCost - currentCost) / temperature);
 
 ## 📊 **Formato Dati di Input**
 
-### **Desiderata 2025-26** (Export Google Forms)
+### **Desiderata 2026-27** (Export Google Forms)
 ```csv
 Timestamp,Email,Cognome,Nome,Ore,MSL1,MSL2,Ore_Non_Lun,Ore_Non_Mar,Ore_Non_Mer,Ore_Non_Gio,Ore_Non_Ven,Ore_Non_Sab,Preferenza_Orario,Note_Part_Time,Note
-"14/06/2025 11:47:27","mario.rossi@scuola.it","Rossi","Mario",18,"Lunedì","Martedì","1,2","","","1","","1","orario compatto","",""
+"14/06/2026 11:47:27","mario.rossi@scuola.it","Rossi","Mario",18,"Lunedì","Martedì","1,2","","","1","","1","orario compatto","",""
 ```
 
 ### **Storico Anni Precedenti**
@@ -276,7 +276,7 @@ Questo progetto è rilasciato sotto **Licenza MIT** - vedi il file [LICENSE](LIC
 
 ```
 MIT License - Sistema Gestione Orari
-Copyright (c) 2025 Prof. Francesco Pontoriero
+Copyright (c) 2026 Prof. Francesco Pontoriero
 ```
 
 ## 👨‍💻 **Autore & Crediti**
