@@ -1,320 +1,240 @@
-# 📋 Sistema Gestione Orari - Blaise Pascal
+# Sistema Gestione Orari - Blaise Pascal
 
-> **Sistema intelligente per l'assegnazione automatica degli MSL (Moduli Settimanali Liberi) ai docenti**
+> **Sistema per l'assegnazione automatica degli MSL (Moduli Settimanali Liberi) ai docenti**
 
-Un'applicazione web avanzata sviluppata per l'Istituto Blaise Pascal di Reggio Emilia che automatizza il processo di assegnazione dei giorni MSL ai docenti, considerando desiderata individuali, rotazioni obbligatorie e bilanciamento del carico.
+Applicazione web per l'Istituto Blaise Pascal di Reggio Emilia. Automatizza l'assegnazione dei giorni MSL considerando desiderata individuali, rotazioni obbligatorie e bilanciamento del carico.
 
-## 🚀 **Caratteristiche Principali**
-
-- ⚡ **Due Algoritmi di Ottimizzazione**: Greedy (veloce) e Simulated Annealing (qualità superiore)
-- 🔄 **Gestione Rotazioni Automatiche**: Rilevamento e applicazione rotazioni obbligatorie (3+ anni stesso MSL)
-- 📊 **Integrazione Dati Multipla**: Import da Google Forms (desiderata) e storico anni precedenti
-- 🎯 **Bilanciamento Intelligente**: Distribuzione equa dei docenti tra i giorni della settimana
-- 📈 **Analisi Avanzate**: Statistiche, conflitti, rotazioni e distribuzione carichi
-- 💾 **Export Multipli**: CSV per Excel, report dettagliati, analisi complete
-- 🔍 **Interfaccia Intuitiva**: Design responsive con visualizzazioni grafiche
-
-## 📁 **Struttura del Progetto**
-
-```
-sistema-gestione-orari/
-├── index.html          # Interfaccia utente principale
-├── script.js           # Logica applicazione e algoritmi
-├── styles.css          # Stili e design responsive  
-├── README.md           # Documentazione (questo file)
-└── data/               # Cartella per file di esempio
-    ├── desiderata_esempio.csv
-    └── storico_esempio.csv
-```
-
-## 🛠️ **Requisiti Tecnici**
-
-- **Browser Web Moderno** (Chrome 80+, Firefox 75+, Safari 13+, Edge 80+)
-- **JavaScript Abilitato**
-- **Supporto localStorage** (per salvataggio dati)
-- **File CSV** con encoding UTF-8
-
-**Nessun server richiesto** - L'applicazione funziona completamente client-side.
-
-## 🚀 **Guida Rapida**
-
-### 1. **Setup Iniziale**
-```bash
-# Clona il repository
-git clone https://github.com/tuoaccount/sistema-gestione-orari.git
-
-# Apri il file index.html nel browser
-open index.html
-```
-
-### 2. **Caricamento Dati**
-1. 📁 **Tab "Importa Dati"** → Carica i CSV con desiderata e storico
-2. 📊 **Tab "Panoramica"** → Verifica le statistiche caricate
-3. 👥 **Tab "Docenti"** → Esplora l'elenco integrato
-
-### 3. **Assegnazione MSL**
-1. 🎯 **Tab "Assegnazione MSL"** → Scegli algoritmo
-2. ⚡ **Greedy**: Risultati in ~1 secondo
-3. 🧠 **Simulated Annealing**: Ottimizzazione in ~5-10 secondi
-4. ✅ **Conferma** le assegnazioni o **modifica manualmente**
-
-### 4. **Export Risultati**
-- 📊 **Tabella CSV**: Export immediato per Excel
-- 📄 **Report Completo**: Analisi dettagliata + CSV
-- 📈 **Analisi**: Report statistico standalone
-
-## 🧠 **Algoritmi di Assegnazione**
-
-### ⚡ **Algoritmo Greedy**
-
-**Strategia**: Assegnazione sequenziale con priorità deterministiche
-
-#### **🔄 Politiche Decisionali**
-
-| Fase | Priorità | Politica Applicata | Descrizione |
-|------|----------|-------------------|-------------|
-| **1. Rotazioni Obbligatorie** | 🔴 **MASSIMA** | `Zero Tolleranza` | Chi ha 3+ anni stesso MSL DEVE ruotare |
-| **2. Docenti Rigidi** | 🟠 **ALTA** | `Meno Flessibili Prima` | Una sola preferenza → priorità maggiore |
-| **3. Docenti Flessibili** | 🟡 **MEDIA** | `Bilanciamento Intelligente` | Due preferenze → usate per bilanciare |
-| **4. Completamento** | 🟢 **BASSA** | `Distribuzione Uniforme` | Rimanenti sul giorno meno carico |
-
-#### **⚙️ Regole di Assegnazione Greedy**
-
-```javascript
-// FASE 1: Rotazioni Forzate
-if (teacher.rotationYears >= 3) {
-    assignedMSL = teacher.msl2 || findLeastLoadedDay();
-    // Policy: Mai lo stesso MSL dell'anno precedente
-}
-
-// FASE 2: Preferenza Singola  
-if (teacher.msl1 === teacher.msl2) {
-    assignedMSL = teacher.msl1; // se sotto capacità
-    // Policy: First-come, first-served con limite capacità
-}
-
-// FASE 3: Flessibilità
-if (teacher.msl1 !== teacher.msl2) {
-    // Policy: MSL1 preferito, MSL2 se MSL1 più carico
-    assignedMSL = (load1 <= load2) ? teacher.msl1 : teacher.msl2;
-}
-```
-
-**✅ Vantaggi**: Velocissimo, deterministico, regole chiare  
-**⚠️ Limiti**: Ottimo locale, non considera l'effetto globale
+**Sviluppato da**: Prof. Francesco Pontoriero — [francescopontoriero.altervista.org](https://francescopontoriero.altervista.org/)
 
 ---
 
-### 🧠 **Algoritmo Simulated Annealing**
+## Struttura del Progetto
 
-**Strategia**: Ottimizzazione globale con accettazione probabilistica
-
-#### **💰 Funzione di Costo Multiobiettivo**
-
-```javascript
-function calculateSolutionCost(solution) {
-    let totalCost = 0;
-    
-    // 🏆 COSTO 1: Rotazioni Mancate (Peso: 500)
-    totalCost += missedRotations * 500;  // CRITICO
-    
-    // 📊 COSTO 2: Preferenze Non Soddisfatte (Peso: 100)  
-    totalCost += unsatisfiedTeachers * 100;  // IMPORTANTE
-    
-    // ⚖️ COSTO 3: Sbilanciamento Giorni (Peso: 50)
-    totalCost += Math.pow(maxLoad - minLoad, 2) * 50;  // MODERATO
-    
-    // 📈 COSTO 4: Varianza Distribuzione (Peso: 25)
-    totalCost += variance * 25;  // RAFFINAMENTO
-    
-    return totalCost;
-}
+```
+desiderata2/
+├── index.html   — interfaccia utente (6 tab)
+├── script.js    — logica, algoritmi, parsing
+├── styles.css   — stile responsive
+└── README.md
 ```
 
-#### **🔄 Strategie di Movimento**
-
-| Strategia | Probabilità | Descrizione | Obiettivo |
-|-----------|------------|-------------|-----------|
-| **Scambio Conservativo** | 40% | Scambia 2 docenti non in rotazione | Mantenere stabilità |
-| **Movimento Flessibile** | 30% | Sposta docente flessibile (MSL1↔MSL2) | Sfruttare flessibilità |
-| **Bilanciamento Attivo** | 20% | Sposta da giorno carico a scarico | Ridurre sbilanciamento |
-| **Esplorazione Pura** | 10% | Movimento completamente casuale | Evitare minimi locali |
-
-#### **🌡️ Controllo Temperatura**
-
-```javascript
-// Temperatura iniziale: basata su varianza dei costi
-initialTemp = standardDeviation * 2;
-
-// Raffreddamento esponenziale
-temperature *= coolingRate;  // coolingRate ≈ 0.995
-
-// Probabilità accettazione
-acceptProb = exp(-(newCost - currentCost) / temperature);
-```
-
-**✅ Vantaggi**: Soluzione ottimale globale, bilanciamento superiore  
-**⚠️ Limiti**: Più lento, risultati probabilistici
+**Nessun server richiesto** — funziona completamente client-side.
 
 ---
 
-## 📊 **Formato Dati di Input**
+## Requisiti
 
-### **Desiderata 2026-27** (Export Google Forms)
+- Browser moderno (Chrome 80+, Firefox 75+, Safari 13+, Edge 80+)
+- JavaScript abilitato
+- File CSV con encoding UTF-8
+
+---
+
+## Guida Rapida
+
+1. **Tab "Importa Dati"** → carica i CSV desiderata e storico
+2. **Tab "Panoramica"** → verifica statistiche e distribuzione
+3. **Tab "Docenti"** → esplora e filtra l'elenco
+4. **Tab "Assegnazione MSL"** → scegli algoritmo e calcola
+5. **Tab "Analisi"** → rotazioni, conflitti, distribuzione
+6. **Export** → CSV tabella o report completo
+
+---
+
+## Formato Dati di Input
+
+### Desiderata 2026-27 (export Google Forms)
+
+Il form produce un CSV con le seguenti colonne (indici 0-based):
+
+| Idx | Colonna | Campo interno |
+|-----|---------|---------------|
+| 0 | Informazioni cronologiche (timestamp) | `timestamp` |
+| 1 | Indirizzo email | `email` |
+| 2 | Cognome | `surname` |
+| 3 | Nome | `name` |
+| 4 | Numero ore settimanali previste | `hours` |
+| 5 | Seleziona MSL [Opzione 1] | `msl1` |
+| 6 | Seleziona MSL [Opzione 2] | `msl2` |
+| 7 | Seleziona MSL [Opzione 3] | `msl3` |
+| 8–13 | Indica 3 ore NON desiderate [Lun–Sab] | `unwantedHours` |
+| 14 | Orario compatto o con ore buche | `schedulePreference` |
+| 15 | Per i part time con massimo nove ore | `partTimeNotes` |
+| 16 | Note | `notes` |
+
+**Nota su MSL3**: è un fallback puro della Commissione Orario, non una terza preferenza paritaria. Viene considerato dall'algoritmo **solo se MSL1 e MSL2 risultano entrambi saturi**. Non è legato alle ore settimanali — il form non impone vincoli al momento della compilazione.
+
 ```csv
-Timestamp,Email,Cognome,Nome,Ore,MSL1,MSL2,Ore_Non_Lun,Ore_Non_Mar,Ore_Non_Mer,Ore_Non_Gio,Ore_Non_Ven,Ore_Non_Sab,Preferenza_Orario,Note_Part_Time,Note
-"14/06/2026 11:47:27","mario.rossi@scuola.it","Rossi","Mario",18,"Lunedì","Martedì","1,2","","","1","","1","orario compatto","",""
+Informazioni cronologiche,Indirizzo email,Cognome,Nome,Numero ore settimanali previste,Seleziona MSL [Opzione 1],Seleziona MSL [Opzione 2],Seleziona MSL [Opzione 3],Indica 3 ore NON desiderate [Lunedì],...
+"08/07/2026 13.49.22","giulia.talami@iispascal.it","TALAMI","GIULIA",14,"Sabato","Mercoledì","","1, 6",...
 ```
 
-### **Storico Anni Precedenti**
+Le colonne "ore non desiderate" possono contenere valori multipli separati da virgola (es. `"1, 6"`, `"4, 5, 6"`).
+
+### Storico Anni Precedenti
+
 ```csv
-Cognome,Nome,Ore,2024-25,2023-24,2022-23,2021-22
-"Rossi","Mario",18,"Lunedì","Martedì","Mercoledì","Lunedì"
-"Bianchi","Giulia",12,"Mercoledì","Mercoledì","Giovedì","Mercoledì"
+Cognome,Nome,Ore,2026-2027,2025-2026,2024-2025,2023-2024,2022-23,2021-22
+Angeli,Annalisa,18,,Venerdì,Venerdì,Venerdì,Venerdì,Venerdì
 ```
 
-## 🎯 **Esempi di Utilizzo**
+| Colonna | Anno | Campo interno |
+|---------|------|---------------|
+| 3 | 2026-2027 | `year2026` (da assegnare, solitamente vuoto) |
+| 4 | 2025-2026 | `year2025` (anno più recente) |
+| 5 | 2024-2025 | `year2024` |
+| 6 | 2023-2024 | `year2023` |
+| 7 | 2022-23 | `year2022` |
+| 8 | 2021-22 | `year2021` |
 
-### **Scenario 1: Istituto Piccolo (20-30 docenti)**
-- ⚡ **Algoritmo Consigliato**: Greedy
-- ⏱️ **Tempo Esecuzione**: < 1 secondo
-- 🎯 **Risultato**: Soluzione ottima locale, soddisfacente
-
-### **Scenario 2: Istituto Grande (50+ docenti, molti vincoli)**
-- 🧠 **Algoritmo Consigliato**: Simulated Annealing  
-- ⏱️ **Tempo Esecuzione**: 5-10 secondi
-- 🏆 **Risultato**: Soluzione ottimale globale, bilanciamento superiore
-
-### **Scenario 3: Molte Rotazioni Obbligatorie**
-- 🔄 **Strategia**: Simulated Annealing per gestire conflitti complessi
-- ⚖️ **Focus**: Bilanciamento post-rotazioni
-- 📊 **Monitoraggio**: Analisi conflitti in tempo reale
-
-## 📈 **Metriche di Qualità**
-
-Il sistema valuta automaticamente la qualità delle assegnazioni:
-
-```javascript
-// Indicatori di Performance
-const qualityMetrics = {
-    satisfactionRate: (satisfied / total) * 100,     // % preferenze soddisfatte
-    balanceScore: maxLoad - minLoad,                 // Sbilanciamento giorni  
-    rotationCompliance: (rotated / mustRotate) * 100, // % rotazioni applicate
-    conflictResolution: (resolved / conflicts) * 100  // % conflitti risolti
-};
-```
-
-**🏆 Obiettivi Ideali:**
-- Soddisfazione: > 85%
-- Bilanciamento: ≤ 2 docenti di differenza
-- Rotazioni: 100% applicate
-- Conflitti: > 90% risolti
-
-## 🔧 **Personalizzazione**
-
-### **Modifica Pesi Algoritmo SA**
-```javascript
-// In script.js, funzione calculateSolutionCost()
-const ROTATION_WEIGHT = 500;      // Peso rotazioni (default: 500)
-const SATISFACTION_WEIGHT = 100;  // Peso preferenze (default: 100)  
-const BALANCE_WEIGHT = 50;        // Peso bilanciamento (default: 50)
-const VARIANCE_WEIGHT = 25;       // Peso uniformità (default: 25)
-```
-
-### **Aggiunta Nuovi Giorni**
-```javascript
-// In script.js, variabile days
-const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
-```
-
-### **Modifica Soglia Rotazione**
-```javascript
-// In script.js, funzione shouldRotate()
-function shouldRotate(history) {
-    return calculateRotationYears(history) >= 3; // Cambia 3 con soglia desiderata
-}
-```
-
-## 🐛 **Risoluzione Problemi**
-
-### **Problema**: "Nessun dato visualizzato"
-**Soluzione**: 
-1. Verifica formato CSV (separatori virgola, encoding UTF-8)
-2. Controlla intestazioni colonne
-3. Usa "Carica Dati di Test" per verificare funzionamento
-
-### **Problema**: "Algoritmo non termina"
-**Soluzione**:
-1. Ricarica la pagina
-2. Verifica presenza docenti con desiderata
-3. Usa Greedy come fallback
-
-### **Problema**: "Export non funziona"
-**Soluzione**:
-1. Verifica popup blocker disabilitato
-2. Controlla permessi download browser
-3. Prova browser diverso
-
-## 🤝 **Contribuire**
-
-1. **Fork** il repository
-2. **Crea** feature branch (`git checkout -b feature/NuovaFunzionalita`)
-3. **Commit** le modifiche (`git commit -am 'Aggiunge nuova funzionalità'`)
-4. **Push** al branch (`git push origin feature/NuovaFunzionalita`)
-5. **Apri** Pull Request
-
-### **Aree di Miglioramento**
-- 🔄 Algoritmi di ottimizzazione aggiuntivi
-- 📱 Versione mobile nativa
-- 🔗 Integrazione API Google Workspace
-- 📊 Dashboard analytics avanzate
-- 🎨 Temi personalizzabili
-
-## 📝 **Licenza**
-
-Questo progetto è rilasciato sotto **Licenza MIT** - vedi il file [LICENSE](LICENSE) per dettagli.
-
-```
-MIT License - Sistema Gestione Orari
-Copyright (c) 2026 Prof. Francesco Pontoriero
-```
-
-## 👨‍💻 **Autore & Crediti**
-
-**Sviluppato da**: Prof. Francesco Pontoriero  
-**Istituto**: Blaise Pascal - Reggio Emilia  
-**Website**: [francescopontoriero.altervista.org](https://francescopontoriero.altervista.org/)
-
-### **Tecnologie Utilizzate**
-- **Frontend**: HTML5, CSS3, JavaScript ES6+
-- **Algoritmi**: Greedy, Simulated Annealing
-- **Storage**: localStorage (browser)
-- **Export**: Blob API, CSV generation
-- **Design**: CSS Grid, Flexbox, Responsive Design
+Il calcolo degli anni consecutivi parte da `year2025` (il più recente disponibile). I valori MSL sono confrontati case-insensitive per gestire inconsistenze (es. `"martedì"` vs `"Martedì"`).
 
 ---
 
-## 📚 **Approfondimenti Tecnici**
+## Logica MSL e Algoritmi
 
-### **Complessità Computazionale**
+### Regola di Assegnazione (Greedy e SA)
 
-| Algoritmo | Complessità Tempo | Complessità Spazio | Qualità Soluzione |
-|-----------|------------------|-------------------|------------------|
-| **Greedy** | O(n log n) | O(n) | Buona (ottimo locale) |
-| **Simulated Annealing** | O(n² × iterazioni) | O(n) | Ottima (ottimo globale) |
+Per ogni docente l'assegnazione segue questa priorità:
 
-### **Parametri Ottimizzazione SA**
+```
+1. MSL1         — preferenza principale
+2. MSL2         — alternativa (bilanciamento attivo con MSL1 nei docenti flessibili)
+3. MSL3         — fallback puro: SOLO se MSL1 e MSL2 sono entrambi saturi
+4. Giorno meno carico — fallback automatico finale
+```
+
+La distinzione tra "soddisfatto" e "fallback MSL3" è tracciata separatamente:
+- `satisfied = true` → assegnato su MSL1 o MSL2
+- `fallback3 = true` → assegnato su MSL3 (tollerato, non preferito)
+- conflitto → né MSL1, né MSL2, né MSL3
+
+### Algoritmo Greedy
+
+Assegnazione in 4 fasi sequenziali:
+
+| Fase | Docenti | Logica |
+|------|---------|--------|
+| 1 | Rotazione obbligatoria | MSL2→MSL1→MSL3→giorno libero (escluso `lastMSL`) |
+| 2 | Rigidi (MSL1=MSL2) | MSL1→MSL3→giorno meno carico |
+| 3 | Flessibili (MSL1≠MSL2) | Bilancia MSL1/MSL2 per carico; se entrambi saturi→MSL3→giorno meno carico |
+| 4 | Rimanenti | MSL1→MSL3→giorno meno carico |
+
+**Vantaggi**: veloce (~1 sec), deterministico, regole chiare.  
+**Limiti**: ottimo locale.
+
+### Algoritmo Simulated Annealing
+
+Ottimizzazione globale con funzione di costo multi-obiettivo:
 
 ```javascript
-const SA_PARAMS = {
-    maxIterations: Math.min(2000, teachers.length * 50),
-    coolingRate: Math.pow(finalTemp / initialTemp, 1 / maxIterations),
-    initialTemp: standardDeviation * 2,
-    finalTemp: 0.01,
-    earlyStoppingThreshold: 0.2 // 20% iterazioni senza miglioramento
-};
+// COSTO 1: Preferenze non soddisfatte
+cost += unsatisfiedHard * 100;  // né msl1 né msl2 né msl3
+cost += fallback3Count  * 30;   // assegnati su msl3 (tollerato)
+
+// COSTO 2: Sbilanciamento giorni
+cost += Math.pow(maxLoad - minLoad, 2) * 50;
+
+// COSTO 3: Rotazioni mancate (critico)
+cost += missedRotations * 500;
+
+// COSTO 4: Varianza distribuzione
+cost += variance * 25;
+```
+
+Strategie di movimento:
+
+| Strategia | Prob. | Comportamento |
+|-----------|-------|---------------|
+| Scambio conservativo | 40% | Scambia 2 docenti non in rotazione |
+| Movimento flessibile | 30% | Flip MSL1↔MSL2; propone MSL3 solo se entrambi saturi |
+| Bilanciamento attivo | 20% | Sposta da giorno carico a giorno scarico |
+| Esplorazione pura | 10% | Mossa casuale per uscire da minimi locali |
+
+**Vantaggi**: soluzione ottimale globale, gestisce vincoli complessi.  
+**Limiti**: ~5-10 sec, risultati probabilistici.
+
+---
+
+## Matching Desiderata ↔ Storico
+
+Il sistema usa matching a più fasi per collegare i due file:
+
+1. **Esatto**: `cognome.toLowerCase() + nome.toLowerCase()` (normalizzati: accenti rimossi, spazi multipli collassati)
+2. **Cognome-only**: se uno dei due nomi è vuoto nello storico
+3. **Fuzzy**: stesso cognome normalizzato + distanza di Levenshtein ≤ 2 sul nome → segnalato come "match approssimativo — verifica" nella tab Dettaglio
+
+---
+
+## Rotazioni
+
+Un docente deve ruotare se ha lo stesso MSL per **3+ anni consecutivi** (calcolati su `year2025`, `year2024`, `year2023`, `year2022`, `year2021`).
+
+Obiettivi di qualità:
+
+| Metrica | Target |
+|---------|--------|
+| Preferenze soddisfatte (MSL1/MSL2) | > 85% |
+| Sbilanciamento giorni | ≤ 2 docenti |
+| Rotazioni applicate | 100% |
+| Fallback MSL3 | minimo possibile |
+
+---
+
+## Export
+
+- **Tabella CSV** (`exportAssignmentTable`): una riga per docente, con MSL assegnato, preferenze, stato, motivo
+- **Report completo** (`exportAssignments`): CSV + testo con statistiche rotazioni e conflitti
+- **Analisi** (`exportAnalysis`): report statistico standalone con distribuzione per giorno
+
+---
+
+## Personalizzazione
+
+### Soglia rotazione obbligatoria
+```javascript
+// script.js — shouldRotate()
+return calculateRotationYears(history) >= 3; // cambia 3 con soglia desiderata
+```
+
+### Pesi funzione di costo SA
+```javascript
+// script.js — calculateSolutionCost()
+unsatisfiedHard * 100   // preferenza completamente mancata
+fallback3Count  * 30    // fallback MSL3 tollerato
+missedRotations * 500   // rotazione mancata (critico)
+imbalance²      * 50    // sbilanciamento giorni
+variance        * 25    // uniformità distribuzione
+```
+
+### Aggiunta giorni
+```javascript
+// script.js — variabile globale days
+const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 ```
 
 ---
 
-*Sistema Gestione Orari v1.0 - Automatizzazione intelligente per l'Istituto Blaise Pascal* 🏫✨
+## Risoluzione Problemi
+
+| Problema | Causa probabile | Soluzione |
+|----------|----------------|-----------|
+| Nessun dato visualizzato | Formato CSV errato | Verifica encoding UTF-8 e separatori virgola |
+| Rotazioni sempre 0 | Colonne storico sfasate | Controlla che la colonna 4 sia `2025-2026` |
+| Match mancanti tra file | Cognome/nome diverso nei due CSV | Verifica tab Dettaglio — segnala match approssimativi |
+| Algoritmo non termina | Dataset vuoto o corrotto | Usa "Carica Dati di Test" per verificare |
+| Export non funziona | Popup blocker | Disabilita blocker per questa pagina |
+
+---
+
+## Tecnologie
+
+- HTML5, CSS3, JavaScript ES6+
+- Algoritmi: Greedy, Simulated Annealing
+- Storage: localStorage (browser)
+- Export: Blob API, CSV generation
+- Design: CSS Grid, Flexbox, Responsive
+
+---
+
+*Sistema Gestione Orari v1.1 — Istituto Blaise Pascal, Reggio Emilia*

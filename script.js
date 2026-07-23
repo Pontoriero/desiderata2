@@ -246,8 +246,9 @@ function displayAssignmentResults() {
 function calculateAssignmentStats() {
     const totalAssignments = currentAssignments.length;
     const satisfied = currentAssignments.filter(a => a.satisfied).length;
+    const fallback3 = currentAssignments.filter(a => a.fallback3).length;
     const rotationForced = currentAssignments.filter(a => a.rotationForced).length;
-    const conflicts = currentAssignments.filter(a => !a.satisfied && !a.rotationForced).length;
+    const conflicts = currentAssignments.filter(a => !a.satisfied && !a.fallback3 && !a.rotationForced).length;
     
     // Distribuzione per giorni
     const dayDistribution = {};
@@ -263,6 +264,7 @@ function calculateAssignmentStats() {
         total: totalAssignments,
         satisfied,
         satisfactionRate: Math.round((satisfied / totalAssignments) * 100),
+        fallback3,
         rotationForced,
         conflicts,
         balance,
@@ -277,6 +279,10 @@ function displayResultsSummary(stats) {
         <div class="result-stat success">
             <div class="result-number">${stats.satisfactionRate}%</div>
             <div class="result-label">Preferenze Soddisfatte</div>
+        </div>
+        <div class="result-stat ${stats.fallback3 > 0 ? 'warning' : 'success'}">
+            <div class="result-number">${stats.fallback3}</div>
+            <div class="result-label">Assegnati su MSL3</div>
         </div>
         <div class="result-stat ${stats.rotationForced > 0 ? 'warning' : 'success'}">
             <div class="result-number">${stats.rotationForced}</div>
@@ -317,16 +323,21 @@ function displayAssignmentTable() {
 
 function createAssignmentRow(assignment) {
     const teacher = assignment.teacher;
-    const rowClass = assignment.rotationForced ? 'rotation-forced' : 
-                    assignment.satisfied ? 'satisfied' : 'rotation-priority';
-    
-    const statusIcon = assignment.satisfied ? '✅' : 
-                      assignment.rotationForced ? '🔄' : '⚠️';
-    
-    const requestedMSL = assignment.requestedMSL1 === assignment.requestedMSL2 ? 
-        assignment.requestedMSL1 : 
-        `${assignment.requestedMSL1} / ${assignment.requestedMSL2}`;
-    
+    const rowClass = assignment.rotationForced ? 'rotation-forced' :
+                     assignment.satisfied      ? 'satisfied'       :
+                     assignment.fallback3      ? 'rotation-priority' : 'rotation-priority';
+
+    const statusIcon = assignment.satisfied      ? '✅' :
+                       assignment.fallback3       ? '⬇️' :
+                       assignment.rotationForced  ? '🔄' : '⚠️';
+
+    const mslParts = [assignment.requestedMSL1, assignment.requestedMSL2]
+        .filter((d, i, arr) => d && arr.indexOf(d) === i);
+    const requestedMSL = mslParts.join(' / ');
+    const msl3Label = assignment.requestedMSL3
+        ? `<br><small style="color:#e67e22;">MSL3 fallback: ${assignment.requestedMSL3}</small>`
+        : '';
+
     return `
         <tr class="${rowClass}">
             <td>
@@ -338,6 +349,7 @@ function createAssignmentRow(assignment) {
             </td>
             <td>
                 ${requestedMSL ? `<span class="msl-badge msl-requested">${requestedMSL}</span>` : 'Non specificato'}
+                ${msl3Label}
             </td>
             <td>
                 <small>
@@ -347,8 +359,9 @@ function createAssignmentRow(assignment) {
             </td>
             <td>
                 <span class="status-icon">${statusIcon}</span>
-                ${assignment.satisfied ? 'Soddisfatto' : 
-                  assignment.rotationForced ? 'Ruotato' : 'Alternativo'}
+                ${assignment.satisfied     ? 'Soddisfatto'   :
+                  assignment.fallback3      ? 'Fallback MSL3' :
+                  assignment.rotationForced ? 'Ruotato'       : 'Alternativo'}
             </td>
             <td>
                 <small>${assignment.reason}</small>
@@ -472,6 +485,8 @@ function applyManualChanges() {
             assignment.assignedMSL = newMSL;
             assignment.reason = 'Modifica manuale';
             assignment.satisfied = newMSL === assignment.requestedMSL1 || newMSL === assignment.requestedMSL2;
+            assignment.fallback3 = !assignment.satisfied &&
+                !!(assignment.requestedMSL3 && newMSL === assignment.requestedMSL3);
             changesCount++;
         }
     });
@@ -837,8 +852,10 @@ function generateInitialSolution(teachers) {
             assignedMSL,
             requestedMSL1: teacher.msl1,
             requestedMSL2: teacher.msl2,
+            requestedMSL3: teacher.msl3 || '',
             reason: 'Soluzione iniziale SA',
             satisfied: assignedMSL === teacher.msl1 || assignedMSL === teacher.msl2,
+            fallback3: false,
             rotationForced: false
         };
         
@@ -937,14 +954,21 @@ function moveFlexibleTeacher(solution) {
     
     // Sposta sulla sua preferenza alternativa
     const currentMSL = solution[teacherIdx].assignedMSL;
+    const cap = calculateDayCapacity();
+    const load1 = solution.filter(a => a.assignedMSL === randomTeacher.requestedMSL1).length;
+    const load2 = solution.filter(a => a.assignedMSL === randomTeacher.requestedMSL2).length;
+    const bothSaturated = load1 >= (cap[randomTeacher.requestedMSL1] || 999) &&
+                          load2 >= (cap[randomTeacher.requestedMSL2] || 999);
+
     let newMSL;
-    
     if (currentMSL === randomTeacher.requestedMSL1) {
         newMSL = randomTeacher.requestedMSL2;
     } else if (currentMSL === randomTeacher.requestedMSL2) {
         newMSL = randomTeacher.requestedMSL1;
+    } else if (bothSaturated && randomTeacher.requestedMSL3) {
+        // msl1/msl2 entrambi saturi: prova msl3
+        newMSL = randomTeacher.requestedMSL3;
     } else {
-        // Non è su nessuna preferenza, metti su una casuale
         newMSL = Math.random() < 0.5 ? randomTeacher.requestedMSL1 : randomTeacher.requestedMSL2;
     }
     
@@ -970,7 +994,7 @@ function balanceOverloadedDays(solution) {
     const candidatesFromMax = solution.filter(a => 
         !a.rotationForced && 
         a.assignedMSL === maxDay &&
-        (a.requestedMSL1 === minDay || a.requestedMSL2 === minDay || (!a.requestedMSL1 && !a.requestedMSL2))
+        (a.requestedMSL1 === minDay || a.requestedMSL2 === minDay || a.requestedMSL3 === minDay || (!a.requestedMSL1 && !a.requestedMSL2))
     );
     
     if (candidatesFromMax.length > 0) {
@@ -999,9 +1023,13 @@ function randomMoveTeacher(solution) {
 }
 
 function updateAssignmentSatisfaction(assignment) {
-    assignment.satisfied = assignment.assignedMSL === assignment.requestedMSL1 || 
-                          assignment.assignedMSL === assignment.requestedMSL2;
-    assignment.reason = assignment.satisfied ? 'Preferenza soddisfatta SA' : 'Assegnazione SA';
+    assignment.satisfied = assignment.assignedMSL === assignment.requestedMSL1 ||
+                           assignment.assignedMSL === assignment.requestedMSL2;
+    assignment.fallback3 = !assignment.satisfied &&
+                           !!(assignment.requestedMSL3 && assignment.assignedMSL === assignment.requestedMSL3);
+    assignment.reason = assignment.satisfied ? 'Preferenza soddisfatta SA'
+                      : assignment.fallback3  ? 'Fallback MSL3 SA'
+                      : 'Assegnazione SA';
 }
 
 function deepCopySolution(solution) {
@@ -1012,10 +1040,12 @@ function deepCopySolution(solution) {
 function calculateSolutionCost(solution) {
     let cost = 0;
     
-    // COSTO 1: Preferenze non soddisfatte (peso alto)
-    const unsatisfied = solution.filter(a => !a.satisfied).length;
-    const satisfactionPenalty = unsatisfied * 100;
-    cost += satisfactionPenalty;
+    // COSTO 1: Preferenze non soddisfatte
+    // hard = né msl1 né msl2 né msl3; soft = fallback msl3 accettato ma non preferito
+    const unsatisfiedHard = solution.filter(a => !a.satisfied && !a.fallback3).length;
+    const fallback3Count  = solution.filter(a => a.fallback3).length;
+    cost += unsatisfiedHard * 100;
+    cost += fallback3Count  * 30;
     
     // COSTO 2: Sbilanciamento giorni (peso medio)
     const dayDistribution = {};
@@ -1074,126 +1104,176 @@ function getTeacherId(teacher) {
 function handleForcedRotation(teacher, currentAssignments, dayCapacity) {
     const teacherId = getTeacherId(teacher);
     const lastMSL = teacher.lastMSL;
-    
-    // Non può avere lo stesso MSL dell'ultimo
+
     const availableDays = days.filter(day => day !== lastMSL);
-    
-    // Preferisci MSL2 se disponibile e diverso dall'ultimo
-    let assignedMSL;
-    if (teacher.msl2 && teacher.msl2 !== lastMSL) {
+
+    const msl2Ok = teacher.msl2 && teacher.msl2 !== lastMSL;
+    const msl1Ok = teacher.msl1 && teacher.msl1 !== lastMSL;
+
+    let assignedMSL, fallback3 = false;
+    if (msl2Ok) {
         assignedMSL = teacher.msl2;
-    } else if (teacher.msl1 && teacher.msl1 !== lastMSL) {
+    } else if (msl1Ok) {
         assignedMSL = teacher.msl1;
+    } else if (teacher.msl3 && teacher.msl3 !== lastMSL) {
+        assignedMSL = teacher.msl3;
+        fallback3 = true;
     } else {
-        // Assegna il giorno meno carico tra quelli disponibili
         assignedMSL = findLeastLoadedDay(availableDays, currentAssignments);
     }
-    
+
     return {
         teacherId,
         teacher,
         assignedMSL,
         requestedMSL1: teacher.msl1,
         requestedMSL2: teacher.msl2,
-        reason: 'Rotazione obbligatoria',
+        requestedMSL3: teacher.msl3 || '',
+        reason: fallback3 ? 'Rotazione obbligatoria (fallback MSL3)' : 'Rotazione obbligatoria',
         satisfied: assignedMSL === teacher.msl1 || assignedMSL === teacher.msl2,
+        fallback3,
         rotationForced: true
     };
 }
 
 function assignPreferredMSL(teacher, currentAssignments, dayCapacity) {
     const teacherId = getTeacherId(teacher);
-    const preferredMSL = teacher.msl1;
-    
-    // Verifica se il giorno preferito è ancora disponibile
-    const currentLoad = currentAssignments.filter(a => a.assignedMSL === preferredMSL).length;
-    const capacity = dayCapacity[preferredMSL] || 999;
-    
-    let assignedMSL;
-    if (currentLoad < capacity) {
+    const preferredMSL = teacher.msl1; // msl1 === msl2 in questa fase
+
+    const load1 = currentAssignments.filter(a => a.assignedMSL === preferredMSL).length;
+    const cap1 = dayCapacity[preferredMSL] || 999;
+
+    let assignedMSL, fallback3 = false, reason;
+    if (load1 < cap1) {
         assignedMSL = preferredMSL;
+        reason = 'Preferenza soddisfatta';
+    } else if (teacher.msl3) {
+        const load3 = currentAssignments.filter(a => a.assignedMSL === teacher.msl3).length;
+        const cap3 = dayCapacity[teacher.msl3] || 999;
+        if (load3 < cap3) {
+            assignedMSL = teacher.msl3;
+            fallback3 = true;
+            reason = 'Giorno pieno — fallback MSL3';
+        } else {
+            assignedMSL = findLeastLoadedDay(days, currentAssignments);
+            reason = 'Tutte le preferenze piene';
+        }
     } else {
-        // Giorno pieno, assegna il meno carico
         assignedMSL = findLeastLoadedDay(days, currentAssignments);
+        reason = 'Giorno pieno, assegnato alternativo';
     }
-    
+
     return {
         teacherId,
         teacher,
         assignedMSL,
         requestedMSL1: teacher.msl1,
         requestedMSL2: teacher.msl2,
-        reason: assignedMSL === preferredMSL ? 'Preferenza soddisfatta' : 'Giorno pieno, assegnato alternativo',
+        requestedMSL3: teacher.msl3 || '',
+        reason,
         satisfied: assignedMSL === teacher.msl1,
+        fallback3,
         rotationForced: false
     };
 }
 
 function assignFlexibleMSL(teacher, currentAssignments, dayCapacity) {
     const teacherId = getTeacherId(teacher);
-    
-    // Controlla carico di entrambe le opzioni
+
     const load1 = currentAssignments.filter(a => a.assignedMSL === teacher.msl1).length;
     const load2 = currentAssignments.filter(a => a.assignedMSL === teacher.msl2).length;
-    
-    const capacity1 = dayCapacity[teacher.msl1] || 999;
-    const capacity2 = dayCapacity[teacher.msl2] || 999;
-    
-    let assignedMSL;
-    let reason;
-    
-    // Strategia: preferisci MSL1, ma usa MSL2 se MSL1 è più carico
-    if (load1 < capacity1 && (load1 <= load2 || load2 >= capacity2)) {
+    const cap1 = dayCapacity[teacher.msl1] || 999;
+    const cap2 = dayCapacity[teacher.msl2] || 999;
+
+    let assignedMSL, fallback3 = false, reason;
+
+    if (load1 < cap1 && load2 < cap2) {
+        // Entrambe disponibili: bilancia come prima (MSL1 se non più carico di MSL2)
+        if (load1 <= load2) {
+            assignedMSL = teacher.msl1;
+            reason = 'Prima preferenza disponibile';
+        } else {
+            assignedMSL = teacher.msl2;
+            reason = 'Seconda preferenza per bilanciamento';
+        }
+    } else if (load1 < cap1) {
         assignedMSL = teacher.msl1;
         reason = 'Prima preferenza disponibile';
-    } else if (load2 < capacity2) {
+    } else if (load2 < cap2) {
         assignedMSL = teacher.msl2;
         reason = 'Seconda preferenza per bilanciamento';
+    } else if (teacher.msl3) {
+        const load3 = currentAssignments.filter(a => a.assignedMSL === teacher.msl3).length;
+        const cap3 = dayCapacity[teacher.msl3] || 999;
+        if (load3 < cap3) {
+            assignedMSL = teacher.msl3;
+            fallback3 = true;
+            reason = 'MSL1/MSL2 saturi — fallback MSL3';
+        } else {
+            assignedMSL = findLeastLoadedDay(days, currentAssignments);
+            reason = 'Tutte le preferenze sature';
+        }
     } else {
-        // Entrambi pieni, assegna il meno carico globalmente
         assignedMSL = findLeastLoadedDay(days, currentAssignments);
         reason = 'Entrambe le preferenze piene';
     }
-    
+
     return {
         teacherId,
         teacher,
         assignedMSL,
         requestedMSL1: teacher.msl1,
         requestedMSL2: teacher.msl2,
+        requestedMSL3: teacher.msl3 || '',
         reason,
         satisfied: assignedMSL === teacher.msl1 || assignedMSL === teacher.msl2,
+        fallback3,
         rotationForced: false
     };
 }
 
 function assignRemainingMSL(teacher, currentAssignments, dayCapacity) {
     const teacherId = getTeacherId(teacher);
-    
-    // Prova MSL1 se specificato
-    let assignedMSL;
+
+    let assignedMSL, fallback3 = false, reason;
+
     if (teacher.msl1) {
-        const currentLoad = currentAssignments.filter(a => a.assignedMSL === teacher.msl1).length;
-        const capacity = dayCapacity[teacher.msl1] || 999;
-        
-        if (currentLoad < capacity) {
+        const load1 = currentAssignments.filter(a => a.assignedMSL === teacher.msl1).length;
+        const cap1 = dayCapacity[teacher.msl1] || 999;
+
+        if (load1 < cap1) {
             assignedMSL = teacher.msl1;
+            reason = 'Assegnazione preferenza';
+        } else if (teacher.msl3) {
+            const load3 = currentAssignments.filter(a => a.assignedMSL === teacher.msl3).length;
+            const cap3 = dayCapacity[teacher.msl3] || 999;
+            if (load3 < cap3) {
+                assignedMSL = teacher.msl3;
+                fallback3 = true;
+                reason = 'MSL1 saturo — fallback MSL3';
+            } else {
+                assignedMSL = findLeastLoadedDay(days, currentAssignments);
+                reason = 'Tutte le preferenze sature';
+            }
         } else {
             assignedMSL = findLeastLoadedDay(days, currentAssignments);
+            reason = 'Giorno pieno, assegnazione automatica';
         }
     } else {
-        // Nessuna preferenza, assegna il meno carico
         assignedMSL = findLeastLoadedDay(days, currentAssignments);
+        reason = 'Assegnazione automatica';
     }
-    
+
     return {
         teacherId,
         teacher,
         assignedMSL,
         requestedMSL1: teacher.msl1,
         requestedMSL2: teacher.msl2,
-        reason: teacher.msl1 ? 'Assegnazione preferenza' : 'Assegnazione automatica',
+        requestedMSL3: teacher.msl3 || '',
+        reason,
         satisfied: assignedMSL === teacher.msl1,
+        fallback3,
         rotationForced: false
     };
 }
