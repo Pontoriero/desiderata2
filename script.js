@@ -136,7 +136,9 @@ function exportAssignmentTable() {
         'MSL_Assegnato',
         'Prima_Richiesta',
         'Seconda_Richiesta',
+        'Terza_Richiesta',
         'Preferenza_Soddisfatta',
+        'Fallback_MSL3',
         'Anni_Stesso_MSL',
         'Ultimo_MSL',
         'Forzato_Rotazione',
@@ -155,7 +157,9 @@ function exportAssignmentTable() {
             assignment.assignedMSL || '',
             assignment.requestedMSL1 || '',
             assignment.requestedMSL2 || '',
+            assignment.requestedMSL3 || '',
             assignment.satisfied ? 'SÌ' : 'NO',
+            assignment.fallback3 ? 'SÌ' : 'NO',
             teacher.rotationYears || '0',
             teacher.lastMSL || '',
             assignment.rotationForced ? 'SÌ' : 'NO',
@@ -259,7 +263,12 @@ function calculateAssignmentStats() {
     const maxLoad = Math.max(...values);
     const minLoad = Math.min(...values);
     const balance = maxLoad - minLoad;
-    
+
+    const capacity = Math.ceil(totalAssignments / days.length);
+    const overloadedDays = days
+        .filter(day => dayDistribution[day] > capacity + 2)
+        .map(day => ({ day, load: dayDistribution[day], capacity }));
+
     return {
         total: totalAssignments,
         satisfied,
@@ -268,7 +277,8 @@ function calculateAssignmentStats() {
         rotationForced,
         conflicts,
         balance,
-        dayDistribution
+        dayDistribution,
+        overloadedDays
     };
 }
 
@@ -296,6 +306,14 @@ function displayResultsSummary(stats) {
             <div class="result-number">${stats.balance}</div>
             <div class="result-label">Sbilanciamento Max</div>
         </div>
+        ${stats.overloadedDays.length > 0 ? `
+        <div class="result-stat error" style="grid-column: 1/-1; font-size:0.9em;">
+            <div class="result-number">⚠️</div>
+            <div class="result-label">
+                Giorni sovraccarichi (cap+2 superato):<br>
+                ${stats.overloadedDays.map(d => `<strong>${d.day}</strong>: ${d.load} docenti (soglia ${d.capacity + 2})`).join(' &nbsp;|&nbsp; ')}
+            </div>
+        </div>` : ''}
     `;
 }
 
@@ -1404,8 +1422,8 @@ function displayTeacherDetailCard(teacher) {
                         <span class="detail-info-value">${teacher.msl2 || 'Non specificato'}</span>
                     </div>
                     <div class="detail-info-item">
-                        <span class="detail-info-label">Terza scelta (≤9h):</span>
-                        <span class="detail-info-value">${teacher.msl3 || 'Non disponibile'}</span>
+                        <span class="detail-info-label">Terza scelta (fallback):</span>
+                        <span class="detail-info-value">${teacher.msl3 || 'Non specificato'}</span>
                     </div>
                     <div class="detail-info-item">
                         <span class="detail-info-label">Flessibilità:</span>
@@ -1943,7 +1961,6 @@ function integrateData() {
                 : null
         };
 
-        filterMSLByHours(integrated);
         integratedData.push(integrated);
     });
     
@@ -1999,13 +2016,6 @@ function levenshtein(a, b) {
     return dp[m][n];
 }
 
-function filterMSLByHours(teacher) {
-    if ((teacher.hours || 0) > 9 && teacher.msl3) {
-        teacher.warnings = teacher.warnings || [];
-        teacher.warnings.push(`MSL3 (${teacher.msl3}) ignorato: ${teacher.hours}h > 9h`);
-        teacher.msl3 = '';
-    }
-}
 
 function findHistoryMatchDetail(teacher) {
     for (const h of historyData) {

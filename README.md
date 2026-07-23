@@ -62,7 +62,7 @@ Il form produce un CSV con le seguenti colonne (indici 0-based):
 | 15 | Per i part time con massimo nove ore | `partTimeNotes` |
 | 16 | Note | `notes` |
 
-**Nota su MSL3**: è un fallback puro della Commissione Orario, non una terza preferenza paritaria. Viene considerato dall'algoritmo **solo se MSL1 e MSL2 risultano entrambi saturi**. Non è legato alle ore settimanali — il form non impone vincoli al momento della compilazione.
+**Nota su MSL3**: è un fallback puro della Commissione Orario, non una terza preferenza paritaria. Viene considerato dall'algoritmo **solo se MSL1 e MSL2 risultano entrambi saturi**. Non è legato alle ore settimanali — disponibile per tutti i docenti indipendentemente dal contratto.
 
 ```csv
 Informazioni cronologiche,Indirizzo email,Cognome,Nome,Numero ore settimanali previste,Seleziona MSL [Opzione 1],Seleziona MSL [Opzione 2],Seleziona MSL [Opzione 3],Indica 3 ore NON desiderate [Lunedì],...
@@ -179,11 +179,13 @@ Obiettivi di qualità:
 | Rotazioni applicate | 100% |
 | Fallback MSL3 | minimo possibile |
 
+La summary mostra un avviso rosso se un giorno supera `⌈N/6⌉ + 2` docenti (soglia sovraccarico). Con 93 docenti la soglia è 18 — con distribuzione normale (15-17/giorno) non si attiva.
+
 ---
 
 ## Export
 
-- **Tabella CSV** (`exportAssignmentTable`): una riga per docente, con MSL assegnato, preferenze, stato, motivo
+- **Tabella CSV** (`exportAssignmentTable`): una riga per docente — colonne: `MSL_Assegnato`, `Prima_Richiesta`, `Seconda_Richiesta`, `Terza_Richiesta`, `Preferenza_Soddisfatta`, `Fallback_MSL3` (SÌ/NO), `Motivo_Assegnazione`
 - **Report completo** (`exportAssignments`): CSV + testo con statistiche rotazioni e conflitti
 - **Analisi** (`exportAnalysis`): report statistico standalone con distribuzione per giorno
 
@@ -222,6 +224,7 @@ const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Saba
 | Nessun dato visualizzato | Formato CSV errato | Verifica encoding UTF-8 e separatori virgola |
 | Rotazioni sempre 0 | Colonne storico sfasate | Controlla che la colonna 4 sia `2025-2026` |
 | Match mancanti tra file | Cognome/nome diverso nei due CSV | Verifica tab Dettaglio — segnala match approssimativi |
+| MSL3 mai usato nel CSV export | Dati corrotti o msl3 vuoto | Controlla colonna `Terza_Richiesta`: se vuota, il form non aveva MSL3 compilato |
 | Algoritmo non termina | Dataset vuoto o corrotto | Usa "Carica Dati di Test" per verificare |
 | Export non funziona | Popup blocker | Disabilita blocker per questa pagina |
 
