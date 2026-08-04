@@ -1715,8 +1715,11 @@ let historyData = [];
 let integratedData = [];
 let filteredData = [];
 let currentAssignments = []; // Risultati dell'assegnazione automatica
+let classCouncilsData = [];
 
 const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+const CONSIGLIO_SOGLIA_GIALLO = 2;
+const CONSIGLIO_SOGLIA_ROSSO = 3;
 
 // ===================================
 // INIZIALIZZAZIONE
@@ -1843,6 +1846,26 @@ async function loadDesiderata() {
         console.log(`✅ Desiderata caricati: ${desiderataData.length} docenti`);
     } catch (error) {
         console.error('❌ Errore caricamento desiderata:', error);
+        alert('Errore nel caricamento del file. Verifica che sia un CSV valido.');
+    }
+}
+
+async function loadClassCouncils() {
+    const fileInput = document.getElementById('councils-file');
+    const file = fileInput.files[0];
+    if (!file) { alert('Seleziona prima un file CSV'); return; }
+    try {
+        console.log('📚 Caricamento consigli di classe in corso...');
+        const text = await file.text();
+        classCouncilsData = parseClassCouncilsCSV(text);
+        const numClassi = new Set(classCouncilsData.map(r => r.classe)).size;
+        alert(`✅ Caricati dati di ${numClassi} classi (${classCouncilsData.length} righe)!`);
+        console.log(`✅ Consigli di classe caricati: ${classCouncilsData.length} righe, ${numClassi} classi`);
+        if (document.getElementById('analysis').classList.contains('active')) {
+            displayAnalysis();
+        }
+    } catch (error) {
+        console.error('❌ Errore caricamento consigli di classe:', error);
         alert('Errore nel caricamento del file. Verifica che sia un CSV valido.');
     }
 }
@@ -2323,6 +2346,189 @@ function filterTeachers() {
 }
 
 // ===================================
+// PARSING CSV CONSIGLI DI CLASSE
+// ===================================
+
+function parseClassCouncilsCSV(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) return [];
+    const sep = lines[0].includes(';') ? ';' : ',';
+    const records = [];
+    for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
+        if (cols.length < 5) continue;
+        const docente = cols[4] || '';
+        if (!docente) continue;
+        records.push({
+            classeConc: cols[0] || '',
+            classe: (cols[1] || '').toUpperCase().trim(),
+            materia: cols[2] || '',
+            ore: parseInt(cols[3]) || 0,
+            docente
+        });
+    }
+    return records;
+}
+
+function isPlaceholder(nome) {
+    return /^[A-Z]{1,2}\d{2}(\s|\(|$)/i.test((nome || '').trim());
+}
+
+function matchCouncilDocente(docenteStr) {
+    if (!currentAssignments.length) return null;
+    const raw = normalizeString(docenteStr.split(/\s+/)[0]);
+
+    for (const a of currentAssignments) {
+        if (normalizeString(a.teacher.surname) === raw) return a;
+    }
+
+    if (raw.length >= 4) {
+        for (const a of currentAssignments) {
+            const s = normalizeString(a.teacher.surname);
+            if (s.length >= 4 && levenshtein(s, raw) <= 1) return a;
+        }
+    }
+
+    return null;
+}
+
+function buildClassCouncilMap() {
+    const classMap = new Map();
+    for (const record of classCouncilsData) {
+        const cls = record.classe;
+        if (!cls) continue;
+        if (!classMap.has(cls)) {
+            classMap.set(cls, { seen: new Set(), matched: [], notFound: [], scoperte: 0 });
+        }
+        const entry = classMap.get(cls);
+        if (isPlaceholder(record.docente)) {
+            entry.scoperte++;
+        } else {
+            const key = record.docente.toUpperCase();
+            if (!entry.seen.has(key)) {
+                entry.seen.add(key);
+                const assignment = matchCouncilDocente(record.docente);
+                if (assignment) {
+                    entry.matched.push({ raw: record.docente, assignment });
+                } else {
+                    entry.notFound.push(record.docente);
+                }
+            }
+        }
+    }
+    return classMap;
+}
+
+function buildClassCouncilHTML() {
+    if (classCouncilsData.length === 0) {
+        return `
+        <div class="analysis-section">
+            <h3>📚 Analisi per Consiglio di Classe</h3>
+            <div class="analysis-item warning">
+                ℹ️ Carica il file <strong>Consigli di Classe</strong> nel tab "Importa Dati" per attivare questa analisi.
+            </div>
+        </div>`;
+    }
+    if (currentAssignments.length === 0) {
+        return `
+        <div class="analysis-section">
+            <h3>📚 Analisi per Consiglio di Classe</h3>
+            <div class="analysis-item warning">
+                ℹ️ Genera prima un'assegnazione MSL nel tab "Assegnazione MSL" per attivare questa analisi.
+            </div>
+        </div>`;
+    }
+
+    const classMap = buildClassCouncilMap();
+    const critical = [], warning = [], ok = [];
+
+    for (const [cls, entry] of classMap) {
+        const dayCounts = {};
+        days.forEach(d => { dayCounts[d] = 0; });
+        entry.matched.forEach(({ assignment }) => {
+            if (assignment.assignedMSL && dayCounts[assignment.assignedMSL] !== undefined) {
+                dayCounts[assignment.assignedMSL]++;
+            }
+        });
+        const maxDay = Math.max(0, ...Object.values(dayCounts));
+        const item = { cls, entry, dayCounts, maxDay };
+        if (maxDay >= CONSIGLIO_SOGLIA_ROSSO) critical.push(item);
+        else if (maxDay >= CONSIGLIO_SOGLIA_GIALLO) warning.push(item);
+        else ok.push(item);
+    }
+
+    const byClass = (a, b) => a.cls.localeCompare(b.cls, 'it');
+    critical.sort(byClass); warning.sort(byClass); ok.sort(byClass);
+    const allItems = [...critical, ...warning, ...ok];
+
+    const totalNotFound = allItems.reduce((s, i) => s + i.entry.notFound.length, 0);
+    const totalScoperte = allItems.reduce((s, i) => s + i.entry.scoperte, 0);
+
+    const renderRow = ({ cls, entry, dayCounts, maxDay }) => {
+        const statusClass = maxDay >= CONSIGLIO_SOGLIA_ROSSO ? 'council-badge-red' :
+                            maxDay >= CONSIGLIO_SOGLIA_GIALLO ? 'council-badge-yellow' : 'council-badge-green';
+        const statusLabel = maxDay >= CONSIGLIO_SOGLIA_ROSSO ? 'CRITICA' :
+                            maxDay >= CONSIGLIO_SOGLIA_GIALLO ? 'ATTENZIONE' : 'OK';
+        const rowClass = maxDay >= CONSIGLIO_SOGLIA_ROSSO ? 'council-row-critical' :
+                         maxDay >= CONSIGLIO_SOGLIA_GIALLO ? 'council-row-warning' : '';
+        const dayCells = days.map(d => {
+            const cnt = dayCounts[d];
+            const cellClass = cnt >= CONSIGLIO_SOGLIA_ROSSO ? 'council-day-red' :
+                              cnt >= CONSIGLIO_SOGLIA_GIALLO ? 'council-day-yellow' :
+                              cnt > 0 ? 'council-day-green' : '';
+            return `<td class="council-day-cell ${cellClass}">${cnt > 0 ? cnt : ''}</td>`;
+        }).join('');
+        const notFoundStr = entry.notFound.length > 0
+            ? `<span class="council-not-found">${entry.notFound.join(', ')}</span>`
+            : '—';
+        const scoperteStr = entry.scoperte > 0 ? `<em>${entry.scoperte}</em>` : '—';
+        return `
+        <tr class="${rowClass}">
+            <td class="council-class-cell"><strong>${cls}</strong></td>
+            <td><span class="council-badge ${statusClass}">${statusLabel}</span></td>
+            <td class="council-count-cell">${entry.matched.length}</td>
+            ${dayCells}
+            <td class="council-notfound-cell">${notFoundStr}</td>
+            <td class="council-scoperte-cell">${scoperteStr}</td>
+        </tr>`;
+    };
+
+    return `
+    <div class="analysis-section">
+        <h3>📚 Analisi per Consiglio di Classe</h3>
+        <div class="council-summary">
+            <span>Classi analizzate: <strong>${classMap.size}</strong></span>
+            <span class="council-badge council-badge-red">Critiche: ${critical.length}</span>
+            <span class="council-badge council-badge-yellow">Attenzione: ${warning.length}</span>
+            <span class="council-badge council-badge-green">OK: ${ok.length}</span>
+            ${totalNotFound > 0 ? `<span class="council-warn-text">⚠️ ${totalNotFound} docenti non trovati</span>` : ''}
+            ${totalScoperte > 0 ? `<span class="council-info-text">📋 ${totalScoperte} ore scoperte (non assegnate)</span>` : ''}
+        </div>
+        <p class="council-threshold-note">
+            Soglie: <strong>Attenzione</strong> ≥ ${CONSIGLIO_SOGLIA_GIALLO} docenti stesso giorno &nbsp;|&nbsp;
+            <strong>Critica</strong> ≥ ${CONSIGLIO_SOGLIA_ROSSO} docenti stesso giorno
+        </p>
+        <div class="council-table-wrapper">
+            <table class="council-table">
+                <thead>
+                    <tr>
+                        <th>Classe</th>
+                        <th>Stato</th>
+                        <th>Trovati</th>
+                        ${days.map(d => `<th>${d.substring(0, 3)}</th>`).join('')}
+                        <th>Non trovati</th>
+                        <th>Scoperte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${allItems.map(renderRow).join('')}
+                </tbody>
+            </table>
+        </div>
+    </div>`;
+}
+
+// ===================================
 // ANALISI
 // ===================================
 
@@ -2392,7 +2598,9 @@ function displayAnalysis() {
             `).join('') || '<div class="analysis-item success">✅ Nessun conflitto significativo!</div>'}
         </div>
     `;
-    
+
+    container.innerHTML += buildClassCouncilHTML();
+
     console.log('📈 Analisi visualizzata');
 }
 

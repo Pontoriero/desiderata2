@@ -937,3 +937,103 @@ input[type="file"]:hover {
     0%, 100% { transform: translateY(-2px) scale(1); }
     50% { transform: translateY(-2px) scale(1.05); }
 }
+
+/* ===================================
+   ANALISI CONSIGLI DI CLASSE
+   =================================== */
+
+.council-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    font-size: 0.92em;
+}
+
+.council-threshold-note {
+    font-size: 0.82em;
+    color: #888;
+    margin-bottom: 14px;
+}
+
+.council-warn-text { color: #e74c3c; font-weight: 500; }
+.council-info-text { color: #888; }
+
+.council-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.82em;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+.council-badge-red    { background: #fdebd0; color: #c0392b; border: 1px solid #f5b7b1; }
+.council-badge-yellow { background: #fef9e7; color: #b7770d; border: 1px solid #f9e79f; }
+.council-badge-green  { background: #d5f5e3; color: #1e8449; border: 1px solid #a9dfbf; }
+
+.council-table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.council-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88em;
+}
+
+.council-table thead th {
+    background: #2c3e50;
+    color: white;
+    padding: 10px 12px;
+    text-align: center;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.council-table thead th:first-child { text-align: left; }
+
+.council-table tbody tr:nth-child(even) { background: #f8f9fa; }
+.council-table tbody tr:hover { background: #eaf2ff; }
+
+.council-row-critical { background: #fff5f5 !important; }
+.council-row-critical:hover { background: #ffe8e8 !important; }
+.council-row-warning  { background: #fffdf0 !important; }
+.council-row-warning:hover  { background: #fff8d6 !important; }
+
+.council-class-cell {
+    padding: 9px 12px;
+    white-space: nowrap;
+    font-size: 1em;
+}
+
+.council-count-cell,
+.council-scoperte-cell {
+    text-align: center;
+    padding: 9px 8px;
+    color: #555;
+}
+
+.council-day-cell {
+    text-align: center;
+    padding: 9px 6px;
+    min-width: 36px;
+    font-weight: 600;
+}
+
+.council-day-green  { background: #d5f5e3; color: #1e8449; }
+.council-day-yellow { background: #fef9e7; color: #b7770d; }
+.council-day-red    { background: #fdebd0; color: #c0392b; }
+
+.council-notfound-cell {
+    padding: 9px 10px;
+    font-size: 0.85em;
+    max-width: 200px;
+}
+
+.council-not-found { color: #c0392b; }

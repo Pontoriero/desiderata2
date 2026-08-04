@@ -99,6 +99,13 @@
                 </div>
                 
                 <div class="form-section">
+                    <h3>📚 Importa Consigli di Classe</h3>
+                    <p>File CSV con colonne: Classe concorso, classe, materia, N. ORE/SETT, docente</p>
+                    <input type="file" id="councils-file" accept=".csv">
+                    <button class="btn" onclick="loadClassCouncils()">Carica Consigli di Classe</button>
+                </div>
+
+                <div class="form-section">
                     <h3>🗂️ Dati di Test</h3>
                     <p>Carica dati di esempio per testare il sistema</p>
                     <button class="btn" onclick="loadSampleData()">Carica Dati di Test</button>
