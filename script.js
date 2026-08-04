@@ -2625,6 +2625,7 @@ function buildClassCouncilHTML() {
     const totalScoperte = allItems.reduce((s, i) => s + i.entry.scoperte, 0);
 
     const renderRow = ({ cls, entry, dayCounts, maxDay }) => {
+        const clsSafe = cls.replace(/[^A-Za-z0-9]/g, '_');
         const statusClass = maxDay >= CONSIGLIO_SOGLIA_ROSSO ? 'council-badge-red' :
                             maxDay >= CONSIGLIO_SOGLIA_GIALLO ? 'council-badge-yellow' : 'council-badge-green';
         const statusLabel = maxDay >= CONSIGLIO_SOGLIA_ROSSO ? 'CRITICA' :
@@ -2647,15 +2648,40 @@ function buildClassCouncilHTML() {
               ).join(', ')
             : '—';
         const scoperteStr = entry.scoperte > 0 ? `<em>${entry.scoperte}</em>` : '—';
+
+        const detailRows = entry.matched.map(({ assignment: a }) => {
+            const fullName = `${a.teacher.surname} ${a.teacher.name || ''}`.trim();
+            const mslDay = a.assignedMSL || '—';
+            let statusIcon;
+            if (a.requestedMSL1 === null)  statusIcon = '⚪ senza desiderata';
+            else if (!a.assignedMSL)       statusIcon = '⬜ non assegnato';
+            else if (a.satisfied && a.rotationForced) statusIcon = '✅ 🔁 soddisfatto (rotazione)';
+            else if (a.satisfied)          statusIcon = '✅ soddisfatto';
+            else if (a.fallback3)          statusIcon = '🔄 fallback MSL3';
+            else if (a.rotationForced)     statusIcon = '🔁 rotazione / conflitto';
+            else                           statusIcon = '❌ conflitto';
+            return `<tr><td>${fullName}</td><td>${mslDay}</td><td>${statusIcon}</td></tr>`;
+        }).join('');
+
         return `
-        <tr class="${rowClass}">
-            <td class="council-class-cell"><strong>${cls}</strong></td>
+        <tr class="council-row-clickable ${rowClass}" id="council-row-${clsSafe}" onclick="toggleCouncilDetail('${clsSafe}')">
+            <td class="council-class-cell"><span class="council-chevron" id="council-chevron-${clsSafe}">▶</span> <strong>${cls}</strong></td>
             <td><span class="council-badge ${statusClass}">${statusLabel}</span></td>
             <td class="council-count-cell">${entry.matched.length}</td>
             ${dayCells}
             <td class="council-ambiguous-cell">${ambiguousStr}</td>
             <td class="council-notfound-cell">${notFoundStr}</td>
             <td class="council-scoperte-cell">${scoperteStr}</td>
+        </tr>
+        <tr class="council-detail-row" id="council-detail-${clsSafe}" style="display:none;">
+            <td colspan="12">
+                <div class="council-detail-container">
+                    <table class="council-detail-table">
+                        <thead><tr><th>Docente</th><th>MSL Assegnato</th><th>Stato</th></tr></thead>
+                        <tbody>${detailRows}</tbody>
+                    </table>
+                </div>
+            </td>
         </tr>`;
     };
 
@@ -2695,6 +2721,15 @@ function buildClassCouncilHTML() {
             </table>
         </div>
     </div>`;
+}
+
+function toggleCouncilDetail(clsSafe) {
+    const detail = document.getElementById('council-detail-' + clsSafe);
+    const chevron = document.getElementById('council-chevron-' + clsSafe);
+    if (!detail) return;
+    const opening = detail.style.display === 'none';
+    detail.style.display = opening ? 'table-row' : 'none';
+    if (chevron) chevron.classList.toggle('council-chevron-open', opening);
 }
 
 // ===================================

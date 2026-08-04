@@ -1041,6 +1041,48 @@ input[type="file"]:hover {
 .council-ambiguous-cell { padding: 9px 10px; font-size: 0.85em; max-width: 160px; }
 .council-ambiguous-text { color: #b7770d; font-weight: 500; }
 
+.council-row-clickable { cursor: pointer; user-select: none; }
+.council-row-clickable:hover td { filter: brightness(0.96); }
+
+.council-chevron {
+    display: inline-block;
+    font-size: 0.65em;
+    color: #888;
+    transition: transform 0.18s ease;
+    margin-right: 4px;
+}
+.council-chevron-open { transform: rotate(90deg); }
+
+.council-detail-row > td {
+    padding: 0;
+    background: #f4f7fb;
+    border-top: none;
+}
+.council-detail-container {
+    padding: 10px 20px 12px 36px;
+    border-left: 3px solid #3498db;
+    margin: 0;
+}
+.council-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88em;
+}
+.council-detail-table th {
+    text-align: left;
+    padding: 4px 10px;
+    font-size: 0.82em;
+    color: #555;
+    border-bottom: 1px solid #d0d9e6;
+    font-weight: 600;
+}
+.council-detail-table td {
+    padding: 4px 10px;
+    border-bottom: 1px solid #e8ecf1;
+}
+.council-detail-table tbody tr:last-child td { border-bottom: none; }
+.council-detail-table tbody tr:hover td { background: #eaf2ff; }
+
 /* ===================================
    DOCENTI SENZA DESIDERATA
    =================================== */
