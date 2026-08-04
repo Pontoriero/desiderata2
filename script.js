@@ -2626,6 +2626,20 @@ function buildClassCouncilHTML() {
     const totalAmbiguous = allItems.reduce((s, i) => s + i.entry.ambiguous.length, 0);
     const totalScoperte = allItems.reduce((s, i) => s + i.entry.scoperte, 0);
 
+    const teacherBadge = (a) => {
+        if (a.requestedMSL1 === null) {
+            return a.assignedMSL
+                ? '<span class="cd-badge cd-badge-manual">🔵 Assegnato manualmente</span>'
+                : '<span class="cd-badge cd-badge-unassigned">🔴 DA ASSEGNARE</span>';
+        }
+        if (!a.assignedMSL)                  return '<span class="cd-badge cd-badge-unassigned">🔴 DA ASSEGNARE</span>';
+        if (a.satisfied && a.rotationForced) return '<span class="cd-badge cd-badge-ok">✅ soddisfatto 🔁</span>';
+        if (a.satisfied)                     return '<span class="cd-badge cd-badge-ok">✅ soddisfatto</span>';
+        if (a.fallback3)                     return '<span class="cd-badge cd-badge-fallback">🔄 fallback MSL3</span>';
+        if (a.rotationForced)                return '<span class="cd-badge cd-badge-conflict">🔁 rotazione / conflitto</span>';
+        return '<span class="cd-badge cd-badge-conflict">❌ conflitto</span>';
+    };
+
     const renderRow = ({ cls, entry, dayCounts, maxDay }) => {
         const clsSafe = cls.replace(/[^A-Za-z0-9]/g, '_');
         const statusClass = maxDay >= CONSIGLIO_SOGLIA_ROSSO ? 'council-badge-red' :
@@ -2651,19 +2665,42 @@ function buildClassCouncilHTML() {
             : '—';
         const scoperteStr = entry.scoperte > 0 ? `<em>${entry.scoperte}</em>` : '—';
 
-        const detailRows = entry.matched.map(({ assignment: a }) => {
-            const fullName = `${a.teacher.surname} ${a.teacher.name || ''}`.trim();
-            const mslDay = a.assignedMSL || '—';
-            let statusIcon;
-            if (a.requestedMSL1 === null)  statusIcon = '⚪ senza desiderata';
-            else if (!a.assignedMSL)       statusIcon = '⬜ non assegnato';
-            else if (a.satisfied && a.rotationForced) statusIcon = '✅ 🔁 soddisfatto (rotazione)';
-            else if (a.satisfied)          statusIcon = '✅ soddisfatto';
-            else if (a.fallback3)          statusIcon = '🔄 fallback MSL3';
-            else if (a.rotationForced)     statusIcon = '🔁 rotazione / conflitto';
-            else                           statusIcon = '❌ conflitto';
-            return `<tr><td>${fullName}</td><td>${mslDay}</td><td>${statusIcon}</td></tr>`;
+        // Group matched teachers by assigned day
+        const byDay = {};
+        days.forEach(d => { byDay[d] = []; });
+        const unassigned = [];
+        entry.matched.forEach(({ assignment: a }) => {
+            if (a.assignedMSL && byDay[a.assignedMSL] !== undefined) byDay[a.assignedMSL].push(a);
+            else unassigned.push(a);
+        });
+
+        const dayBlocks = days.map(d => {
+            const group = byDay[d];
+            if (group.length === 0) return '';
+            const cnt = group.length;
+            const blockClass = cnt >= CONSIGLIO_SOGLIA_ROSSO ? 'cd-day-block-red' :
+                               cnt >= CONSIGLIO_SOGLIA_GIALLO ? 'cd-day-block-yellow' : 'cd-day-block-ok';
+            const alertLabel = cnt >= CONSIGLIO_SOGLIA_ROSSO
+                ? ' <span class="cd-day-alert cd-day-alert-red">🔴 CRITICO</span>'
+                : cnt >= CONSIGLIO_SOGLIA_GIALLO
+                ? ' <span class="cd-day-alert cd-day-alert-yellow">🟡 ATTENZIONE</span>' : '';
+            const items = group.map(a =>
+                `<li>${`${a.teacher.surname} ${a.teacher.name || ''}`.trim()} ${teacherBadge(a)}</li>`
+            ).join('');
+            return `<div class="cd-day-block ${blockClass}"><div class="cd-day-title">${d} (${cnt})${alertLabel}</div><ul class="cd-teacher-list">${items}</ul></div>`;
         }).join('');
+
+        const unassignedBlock = unassigned.length > 0
+            ? `<div class="cd-day-block cd-day-block-unassigned"><div class="cd-day-title">⚪ Da assegnare (${unassigned.length})</div><ul class="cd-teacher-list">${
+                unassigned.map(a => `<li>${`${a.teacher.surname} ${a.teacher.name || ''}`.trim()} ${teacherBadge(a)}</li>`).join('')
+              }</ul></div>` : '';
+
+        const extraBlock = (entry.notFound.length > 0 || entry.ambiguous.length > 0)
+            ? `<div class="cd-day-block cd-day-block-extra"><div class="cd-day-title">⚠️ Non abbinati</div><ul class="cd-teacher-list">${
+                entry.notFound.map(n => `<li><span class="council-not-found">${n}</span> — non trovato nel sistema</li>`).join('')
+              }${
+                entry.ambiguous.map(a => `<li><span class="council-ambiguous" title="Possibili: ${a.names}">❓ ${a.raw}</span> — ambiguo (possibili: ${a.names})</li>`).join('')
+              }</ul></div>` : '';
 
         return `
         <tr class="council-row-clickable ${rowClass}" id="council-row-${clsSafe}" onclick="toggleCouncilDetail('${clsSafe}')">
@@ -2677,11 +2714,10 @@ function buildClassCouncilHTML() {
         </tr>
         <tr class="council-detail-row" id="council-detail-${clsSafe}" style="display:none;">
             <td colspan="12">
-                <div class="council-detail-container">
-                    <table class="council-detail-table">
-                        <thead><tr><th>Docente</th><th>MSL Assegnato</th><th>Stato</th></tr></thead>
-                        <tbody>${detailRows}</tbody>
-                    </table>
+                <div class="cd-day-grid">
+                    ${dayBlocks}
+                    ${unassignedBlock}
+                    ${extraBlock}
                 </div>
             </td>
         </tr>`;

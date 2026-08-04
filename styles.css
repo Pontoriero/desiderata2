@@ -1053,35 +1053,67 @@ input[type="file"]:hover {
 }
 .council-chevron-open { transform: rotate(90deg); }
 
-.council-detail-row > td {
-    padding: 0;
+.council-detail-row > td { padding: 0; border-top: none; }
+
+.cd-day-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px 14px 32px;
     background: #f4f7fb;
-    border-top: none;
-}
-.council-detail-container {
-    padding: 10px 20px 12px 36px;
     border-left: 3px solid #3498db;
-    margin: 0;
 }
-.council-detail-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88em;
+
+.cd-day-block {
+    min-width: 150px;
+    flex: 1 1 150px;
+    border-radius: 6px;
+    border: 1px solid #d0d9e6;
+    background: #fff;
+    padding: 8px 12px;
 }
-.council-detail-table th {
-    text-align: left;
-    padding: 4px 10px;
-    font-size: 0.82em;
-    color: #555;
-    border-bottom: 1px solid #d0d9e6;
+.cd-day-block-red        { border-color: #e74c3c; background: #fff5f5; }
+.cd-day-block-yellow     { border-color: #f39c12; background: #fffdf0; }
+.cd-day-block-ok         { border-color: #a9dfbf; background: #f0faf5; }
+.cd-day-block-unassigned { border-color: #e74c3c; background: #fff5f5; }
+.cd-day-block-extra      { border-color: #bbb; background: #f9f9f9; flex: 1 1 100%; }
+
+.cd-day-title {
     font-weight: 600;
+    font-size: 0.87em;
+    margin-bottom: 6px;
+    color: #333;
 }
-.council-detail-table td {
-    padding: 4px 10px;
-    border-bottom: 1px solid #e8ecf1;
+.cd-day-alert            { font-size: 0.8em; margin-left: 5px; }
+.cd-day-alert-red        { color: #c0392b; }
+.cd-day-alert-yellow     { color: #b7770d; }
+
+.cd-teacher-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
-.council-detail-table tbody tr:last-child td { border-bottom: none; }
-.council-detail-table tbody tr:hover td { background: #eaf2ff; }
+.cd-teacher-list li {
+    font-size: 0.84em;
+    padding: 2px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.cd-badge {
+    font-size: 0.78em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.cd-badge-ok         { background: #d5f5e3; color: #1e8449; }
+.cd-badge-fallback   { background: #fef9e7; color: #b7770d; }
+.cd-badge-conflict   { background: #fdebd0; color: #c0392b; }
+.cd-badge-manual     { background: #d6eaf8; color: #1a5276; }
+.cd-badge-unassigned { background: #fdebd0; color: #c0392b; font-weight: 600; }
 
 /* ===================================
    DOCENTI SENZA DESIDERATA
