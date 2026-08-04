@@ -204,6 +204,7 @@ function displayAssignmentResults() {
     displayResultsSummary(stats);
     displayAssignmentTable();
     updateAssignmentSummary();
+    displayClassCouncils();
 
     console.log('📊 Risultati assegnazione visualizzati');
 }
@@ -1808,6 +1809,9 @@ function showTab(tabName) {
         case 'assignment':
             checkAssignmentReadiness();
             break;
+        case 'classCouncils':
+            displayClassCouncils();
+            break;
         case 'analysis':
             displayAnalysis();
             break;
@@ -1861,6 +1865,7 @@ async function loadClassCouncils() {
         const numClassi = new Set(classCouncilsData.map(r => r.classe)).size;
         alert(`✅ Caricati dati di ${numClassi} classi (${classCouncilsData.length} righe)!`);
         console.log(`✅ Consigli di classe caricati: ${classCouncilsData.length} righe, ${numClassi} classi`);
+        displayClassCouncils();
         if (document.getElementById('analysis').classList.contains('active')) {
             displayAnalysis();
         }
@@ -2599,9 +2604,13 @@ function displayAnalysis() {
         </div>
     `;
 
-    container.innerHTML += buildClassCouncilHTML();
-
     console.log('📈 Analisi visualizzata');
+}
+
+function displayClassCouncils() {
+    const container = document.getElementById('class-councils-content');
+    if (!container) return;
+    container.innerHTML = buildClassCouncilHTML();
 }
 
 function analyzeMSLConflicts() {
