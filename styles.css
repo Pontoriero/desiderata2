@@ -1037,3 +1037,28 @@ input[type="file"]:hover {
 }
 
 .council-not-found { color: #c0392b; }
+
+/* ===================================
+   DOCENTI SENZA DESIDERATA
+   =================================== */
+
+tr.missing-desiderata td { color: #999; }
+tr.missing-desiderata:hover { background: #f5f5f5 !important; }
+
+.msl-badge.msl-unassigned {
+    background: #e9ecef;
+    color: #6c757d;
+    font-style: italic;
+    border: 1px dashed #adb5bd;
+}
+
+.manual-edit-item--nodesiderata {
+    border-left: 4px solid #adb5bd;
+    background: #f8f9fa;
+}
+
+.manual-badge-nodesiderata {
+    background: #e9ecef;
+    color: #495057;
+    border: 1px solid #ced4da;
+}

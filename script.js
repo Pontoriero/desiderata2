@@ -157,11 +157,11 @@ function exportAssignmentTable() {
             teacher.name || '',
             teacher.email || '',
             teacher.hours || '',
-            assignment.assignedMSL || '',
-            assignment.requestedMSL1 || '',
-            assignment.requestedMSL2 || '',
-            assignment.requestedMSL3 || '',
-            assignment.satisfied ? 'SÌ' : 'NO',
+            assignment.assignedMSL || 'DA ASSEGNARE',
+            assignment.requestedMSL1 !== null ? (assignment.requestedMSL1 || '') : 'NESSUNA',
+            assignment.requestedMSL2 !== null ? (assignment.requestedMSL2 || '') : 'NESSUNA',
+            assignment.requestedMSL3 !== null ? (assignment.requestedMSL3 || '') : 'NESSUNA',
+            assignment.requestedMSL1 === null ? 'N/A (senza desiderata)' : assignment.satisfied ? 'SÌ' : 'NO',
             assignment.fallback3 ? 'SÌ' : 'NO',
             teacher.rotationYears || '0',
             teacher.lastMSL || '',
@@ -219,8 +219,10 @@ function updateAssignmentSummary() {
     }
 
     const total = currentAssignments.length;
-    const satisfied = currentAssignments.filter(a => a.satisfied).length;
-    const satisfiedPct = Math.round((satisfied / total) * 100);
+    const withDesiderata = currentAssignments.filter(a => a.requestedMSL1 !== null);
+    const satisfied = withDesiderata.filter(a => a.satisfied).length;
+    const satisfiedPct = withDesiderata.length > 0
+        ? Math.round((satisfied / withDesiderata.length) * 100) : 0;
     const fallback3 = currentAssignments.filter(a => a.fallback3).length;
     const mustRotateTotal = integratedData.filter(t => t.mustRotate).length;
     const rotationsApplied = currentAssignments.filter(a => a.rotationForced).length;
@@ -272,16 +274,23 @@ function updateAssignmentSummary() {
 
 function calculateAssignmentStats() {
     const totalAssignments = currentAssignments.length;
-    const satisfied = currentAssignments.filter(a => a.satisfied).length;
-    const fallback3 = currentAssignments.filter(a => a.fallback3).length;
+    const withDesiderata = currentAssignments.filter(a => a.requestedMSL1 !== null);
+    const withoutDesiderata = currentAssignments.filter(a => a.requestedMSL1 === null);
+    const withoutDesiderataUnassigned = withoutDesiderata.filter(a => !a.assignedMSL).length;
+
+    const satisfied = withDesiderata.filter(a => a.satisfied).length;
+    const fallback3 = withDesiderata.filter(a => a.fallback3).length;
     const rotationForced = currentAssignments.filter(a => a.rotationForced).length;
-    const conflicts = currentAssignments.filter(a => !a.satisfied && !a.fallback3 && !a.rotationForced).length;
-    
-    // Distribuzione per giorni
+    const conflicts = withDesiderata.filter(a => !a.satisfied && !a.fallback3 && !a.rotationForced).length;
+    const satisfactionRate = withDesiderata.length > 0
+        ? Math.round((satisfied / withDesiderata.length) * 100)
+        : 0;
+
+    // Distribuzione per giorni (conta solo assegnati)
     const dayDistribution = {};
     days.forEach(day => dayDistribution[day] = 0);
-    currentAssignments.forEach(a => dayDistribution[a.assignedMSL]++);
-    
+    currentAssignments.forEach(a => { if (a.assignedMSL) dayDistribution[a.assignedMSL]++; });
+
     const values = Object.values(dayDistribution);
     const maxLoad = Math.max(...values);
     const minLoad = Math.min(...values);
@@ -295,13 +304,15 @@ function calculateAssignmentStats() {
     return {
         total: totalAssignments,
         satisfied,
-        satisfactionRate: Math.round((satisfied / totalAssignments) * 100),
+        satisfactionRate,
         fallback3,
         rotationForced,
         conflicts,
         balance,
         dayDistribution,
-        overloadedDays
+        overloadedDays,
+        withoutDesiderata: withoutDesiderata.length,
+        withoutDesiderataUnassigned
     };
 }
 
@@ -329,6 +340,11 @@ function displayResultsSummary(stats) {
             <div class="result-number">${stats.balance}</div>
             <div class="result-label">Sbilanciamento Max</div>
         </div>
+        ${stats.withoutDesiderata > 0 ? `
+        <div class="result-stat ${stats.withoutDesiderataUnassigned > 0 ? 'warning' : 'success'}">
+            <div class="result-number">${stats.withoutDesiderataUnassigned}/${stats.withoutDesiderata}</div>
+            <div class="result-label">Da assegnare manualmente</div>
+        </div>` : ''}
         ${stats.overloadedDays.length > 0 ? `
         <div class="result-stat error" style="grid-column: 1/-1; font-size:0.9em;">
             <div class="result-number">⚠️</div>
@@ -364,17 +380,35 @@ function displayAssignmentTable() {
 
 function createAssignmentRow(assignment) {
     const teacher = assignment.teacher;
-    const rowClass = assignment.rotationForced ? 'rotation-forced' :
-                     assignment.satisfied      ? 'satisfied'       :
-                     assignment.fallback3      ? 'rotation-priority' : 'rotation-priority';
+    const noDesiderata = assignment.requestedMSL1 === null;
 
-    const statusIcon = assignment.satisfied      ? '✅' :
+    const rowClass = noDesiderata              ? 'missing-desiderata' :
+                     assignment.rotationForced  ? 'rotation-forced'   :
+                     assignment.satisfied       ? 'satisfied'         :
+                     assignment.fallback3       ? 'rotation-priority' : 'rotation-priority';
+
+    const statusIcon = noDesiderata             ? '⚪' :
+                       assignment.satisfied      ? '✅' :
                        assignment.fallback3       ? '⬇️' :
                        assignment.rotationForced  ? '🔄' : '⚠️';
+
+    const statusLabel = noDesiderata             ? 'Senza desiderata' :
+                        assignment.satisfied      ? 'Soddisfatto'     :
+                        assignment.fallback3      ? 'Fallback MSL3'   :
+                        assignment.rotationForced ? 'Ruotato'         : 'Alternativo';
+
+    const mslBadge = assignment.assignedMSL
+        ? `<span class="msl-badge msl-assigned">${assignment.assignedMSL}</span>`
+        : '<span class="msl-badge msl-unassigned">— Da assegnare —</span>';
 
     const mslParts = [assignment.requestedMSL1, assignment.requestedMSL2]
         .filter((d, i, arr) => d && arr.indexOf(d) === i);
     const requestedMSL = mslParts.join(' / ');
+    const requestedCell = noDesiderata
+        ? '<em style="color:#aaa">non compilato</em>'
+        : requestedMSL
+            ? `<span class="msl-badge msl-requested">${requestedMSL}</span>`
+            : 'Non specificato';
     const msl3Label = assignment.requestedMSL3
         ? `<br><small style="color:#e67e22;">MSL3 fallback: ${assignment.requestedMSL3}</small>`
         : '';
@@ -385,24 +419,17 @@ function createAssignmentRow(assignment) {
                 <strong>${teacher.surname} ${teacher.name || ''}</strong><br>
                 <small>${teacher.hours || 0}h</small>
             </td>
-            <td>
-                <span class="msl-badge msl-assigned">${assignment.assignedMSL}</span>
-            </td>
-            <td>
-                ${requestedMSL ? `<span class="msl-badge msl-requested">${requestedMSL}</span>` : 'Non specificato'}
-                ${msl3Label}
-            </td>
+            <td>${mslBadge}</td>
+            <td>${requestedCell}${msl3Label}</td>
             <td>
                 <small>
                     ${teacher.rotationYears || 0} anni<br>
-                    Ultimo: ${teacher.lastMSL}
+                    Ultimo: ${teacher.lastMSL || '—'}
                 </small>
             </td>
             <td>
                 <span class="status-icon">${statusIcon}</span>
-                ${assignment.satisfied     ? 'Soddisfatto'   :
-                  assignment.fallback3      ? 'Fallback MSL3' :
-                  assignment.rotationForced ? 'Ruotato'       : 'Alternativo'}
+                ${statusLabel}
             </td>
             <td>
                 <small>${assignment.reason}</small>
@@ -469,7 +496,9 @@ function showManualEdit() {
     const content = document.getElementById('manual-edit-content');
 
     const total = currentAssignments.length;
-    const conflictCount = currentAssignments.filter(a => !a.satisfied && !a.fallback3).length;
+    const noDesiderataCount = currentAssignments.filter(a => a.requestedMSL1 === null).length;
+    const conflictCount = currentAssignments.filter(a => a.requestedMSL1 !== null && !a.satisfied && !a.fallback3).length;
+    const okCount = total - conflictCount - noDesiderataCount;
 
     const sorted = [...currentAssignments].sort((a, b) =>
         (a.teacher.surname || '').localeCompare(b.teacher.surname || '', 'it')
@@ -477,8 +506,8 @@ function showManualEdit() {
 
     content.innerHTML = `
         <div style="margin-bottom: 16px;">
-            <h4>Tutte le assegnazioni (${total} totali, ${conflictCount} da rivedere)</h4>
-            <p style="margin-top:4px;color:#666;">Modifica qualsiasi riga. Le righe ⚠️ richiedono attenzione.</p>
+            <h4>Tutte le assegnazioni (${total} totali, ${conflictCount} da rivedere, ${noDesiderataCount} da assegnare)</h4>
+            <p style="margin-top:4px;color:#666;">Modifica qualsiasi riga. Le righe ⚠️ richiedono attenzione, le ⚪ non hanno desiderata.</p>
         </div>
         <div class="manual-edit-controls">
             <input type="text" id="manual-search" placeholder="🔍 Cerca cognome / nome..."
@@ -486,7 +515,8 @@ function showManualEdit() {
             <select id="manual-filter-status" onchange="filterManualEdit()">
                 <option value="">Tutti (${total})</option>
                 <option value="conflict">⚠️ Solo da rivedere (${conflictCount})</option>
-                <option value="ok">✅ Solo già ok (${total - conflictCount})</option>
+                <option value="nodesiderata">⚪ Solo senza desiderata (${noDesiderataCount})</option>
+                <option value="ok">✅ Solo già ok (${okCount})</option>
             </select>
         </div>
         <div id="manual-edit-list">
@@ -515,26 +545,43 @@ function filterManualEdit() {
 function createManualEditItem(assignment) {
     const teacher = assignment.teacher;
     const itemId = `manual-${assignment.teacherId}`;
-    const isConflict = !assignment.satisfied && !assignment.fallback3;
-    const statusLabel = isConflict
-        ? '<span class="manual-badge manual-badge-conflict">⚠️ Da rivedere</span>'
-        : '<span class="manual-badge manual-badge-ok">✅ Ok</span>';
+    const noDesiderata = assignment.requestedMSL1 === null;
+    const isConflict = !noDesiderata && !assignment.satisfied && !assignment.fallback3;
+
+    const statusLabel = noDesiderata
+        ? '<span class="manual-badge manual-badge-nodesiderata">⚪ Senza desiderata</span>'
+        : isConflict
+            ? '<span class="manual-badge manual-badge-conflict">⚠️ Da rivedere</span>'
+            : '<span class="manual-badge manual-badge-ok">✅ Ok</span>';
+
+    const dataStatus = noDesiderata ? 'nodesiderata' : isConflict ? 'conflict' : 'ok';
+    const itemClass = noDesiderata ? 'manual-edit-item--nodesiderata' : isConflict ? 'manual-edit-item--conflict' : '';
+
     const msl2part = assignment.requestedMSL2 && assignment.requestedMSL2 !== assignment.requestedMSL1
         ? ` / ${assignment.requestedMSL2}` : '';
     const msl3part = assignment.requestedMSL3 ? ` / ${assignment.requestedMSL3}` : '';
+    const richiesteText = noDesiderata
+        ? 'nessuna (non ha compilato il form)'
+        : `${assignment.requestedMSL1 || 'N/A'}${msl2part}${msl3part}`;
+    const assignedText = assignment.assignedMSL || '— da assegnare —';
+
+    const placeholderOpt = noDesiderata && !assignment.assignedMSL
+        ? '<option value="" selected disabled>-- Seleziona giorno --</option>'
+        : '';
 
     return `
-        <div class="manual-edit-item ${isConflict ? 'manual-edit-item--conflict' : ''}"
+        <div class="manual-edit-item ${itemClass}"
              data-name="${(teacher.surname + ' ' + (teacher.name || '')).toLowerCase()}"
-             data-status="${isConflict ? 'conflict' : 'ok'}">
+             data-status="${dataStatus}">
             <div class="manual-edit-info">
                 <div class="manual-edit-teacher">${teacher.surname} ${teacher.name || ''} ${statusLabel}</div>
                 <div class="manual-edit-current">
-                    Assegnato: <strong>${assignment.assignedMSL}</strong> &nbsp;|&nbsp;
-                    Richieste: ${assignment.requestedMSL1 || 'N/A'}${msl2part}${msl3part}
+                    Assegnato: <strong>${assignedText}</strong> &nbsp;|&nbsp;
+                    Richieste: ${richiesteText}
                 </div>
             </div>
             <select class="manual-edit-select" id="${itemId}" data-teacher-id="${assignment.teacherId}">
+                ${placeholderOpt}
                 ${days.map(day => `
                     <option value="${day}" ${day === assignment.assignedMSL ? 'selected' : ''}>${day}</option>
                 `).join('')}
@@ -551,10 +598,14 @@ function applyManualChanges() {
         const teacherId = select.dataset.teacherId;
         const newMSL = select.value;
         
+        if (!newMSL) return; // salta opzione placeholder non selezionata
         const assignment = currentAssignments.find(a => a.teacherId === teacherId);
         if (assignment && assignment.assignedMSL !== newMSL) {
+            const wasUnassigned = assignment.assignedMSL === null;
             assignment.assignedMSL = newMSL;
-            assignment.reason = 'Modifica manuale';
+            assignment.reason = wasUnassigned
+                ? 'Assegnazione manuale (senza desiderata)'
+                : 'Modifica manuale';
             assignment.satisfied = newMSL === assignment.requestedMSL1 || newMSL === assignment.requestedMSL2;
             assignment.fallback3 = !assignment.satisfied &&
                 !!(assignment.requestedMSL3 && newMSL === assignment.requestedMSL3);
@@ -600,10 +651,10 @@ function exportAssignments() {
         assignment.teacher.name || '',
         assignment.teacher.email || '',
         assignment.teacher.hours || '',
-        assignment.assignedMSL,
-        assignment.requestedMSL1 || '',
-        assignment.requestedMSL2 || '',
-        assignment.satisfied ? 'SI' : 'NO',
+        assignment.assignedMSL || 'DA ASSEGNARE',
+        assignment.requestedMSL1 !== null ? (assignment.requestedMSL1 || '') : 'NESSUNA',
+        assignment.requestedMSL2 !== null ? (assignment.requestedMSL2 || '') : 'NESSUNA',
+        assignment.requestedMSL1 === null ? 'N/A (senza desiderata)' : assignment.satisfied ? 'SI' : 'NO',
         assignment.teacher.rotationYears || 0,
         assignment.teacher.lastMSL || '',
         assignment.reason
@@ -635,9 +686,14 @@ ${currentAssignments.filter(a => a.rotationForced).map(a =>
     `- ${a.teacher.surname} ${a.teacher.name || ''}: da ${a.teacher.lastMSL} a ${a.assignedMSL}`
 ).join('\n') || 'Nessuna rotazione obbligatoria'}
 
+SENZA DESIDERATA (da assegnare manualmente):
+${currentAssignments.filter(a => a.requestedMSL1 === null).map(a =>
+    `- ${a.teacher.surname} ${a.teacher.name || ''}: ${a.assignedMSL ? `assegnato ${a.assignedMSL}` : 'non ancora assegnato'}`
+).join('\n') || 'Nessuno'}
+
 CONFLITTI NON RISOLTI:
-${currentAssignments.filter(a => !a.satisfied && !a.rotationForced).map(a => 
-    `- ${a.teacher.surname} ${a.teacher.name || ''}: richiesto ${a.requestedMSL1}, assegnato ${a.assignedMSL}`
+${currentAssignments.filter(a => a.requestedMSL1 !== null && !a.satisfied && !a.rotationForced).map(a =>
+    `- ${a.teacher.surname} ${a.teacher.name || ''}: richiesto ${a.requestedMSL1}, assegnato ${a.assignedMSL || '—'}`
 ).join('\n') || 'Tutti i conflitti risolti'}
 
 Report generato automaticamente dal Sistema Gestione Orari
@@ -690,7 +746,27 @@ async function runAssignmentAlgorithm() {
         } else {
             currentAssignments = await runSimulatedAnnealingAlgorithm();
         }
-        
+
+        // Aggiungi placeholder per docenti senza desiderata
+        const assignedIds = new Set(currentAssignments.map(a => a.teacherId));
+        integratedData.filter(t => !t.hasDesiderata).forEach(teacher => {
+            const id = getTeacherId(teacher);
+            if (!assignedIds.has(id)) {
+                currentAssignments.push({
+                    teacherId: id,
+                    teacher,
+                    assignedMSL: null,
+                    requestedMSL1: null,
+                    requestedMSL2: null,
+                    requestedMSL3: null,
+                    satisfied: false,
+                    rotationForced: false,
+                    fallback3: false,
+                    reason: 'Senza desiderata — assegnazione manuale richiesta'
+                });
+            }
+        });
+
         hideProgress();
         displayAssignmentResults();
         
@@ -2586,14 +2662,16 @@ function displayAnalysis() {
         
         <div class="analysis-section">
             <h3>📋 Docenti Senza Desiderata 2026-27 (${missingDesiderata.length})</h3>
-            ${missingDesiderata.length > 0 ? 
-                missingDesiderata.map(t => `
+            ${missingDesiderata.length > 0 ? `
+                <div class="analysis-item" style="background:#f0f4ff;border-left:4px solid #5b8dee;margin-bottom:10px;">
+                    <small>ℹ️ Questi docenti sono inclusi nella tab <strong>Assegnazione MSL</strong> come "⚪ Senza desiderata" — puoi assegnare il loro giorno manualmente dalla sezione <em>Modifica Manualmente</em> senza uscire dall'app.</small>
+                </div>
+                ${missingDesiderata.map(t => `
                     <div class="analysis-item warning">
                         <strong>${t.surname} ${t.name || ''}</strong><br>
-                        <small>Ultimo MSL: ${t.lastMSL} • Ore: ${t.hours || 'N/A'}</small><br>
-                        <small>Da contattare per compilazione desiderata</small>
+                        <small>Ultimo MSL: ${t.lastMSL || '—'} • Ore: ${t.hours || 'N/A'}</small>
                     </div>
-                `).join('') :
+                `).join('')}` :
                 '<div class="analysis-item success">✅ Tutti hanno compilato i desiderata!</div>'
             }
         </div>
