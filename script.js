@@ -122,10 +122,8 @@ function resetAllUI() {
 
 
 // ===================================
-// AGGIUNTA PER EXPORT TABELLA ASSEGNAZIONI
+// EXPORT TABELLA ASSEGNAZIONI
 // ===================================
-
-// Aggiungi questa funzione al file script.js
 
 function exportAssignmentTable() {
     if (currentAssignments.length === 0) {
@@ -286,7 +284,7 @@ function calculateAssignmentStats() {
     const satisfied = withDesiderata.filter(a => a.satisfied).length;
     const fallback3 = withDesiderata.filter(a => a.fallback3).length;
     const rotationForced = currentAssignments.filter(a => a.rotationForced).length;
-    const conflicts = withDesiderata.filter(a => !a.satisfied && !a.fallback3 && !a.rotationForced).length;
+    const conflicts = withDesiderata.filter(a => a.requestedMSL1 !== null && !a.satisfied && !a.fallback3 && !a.rotationForced).length;
     const satisfactionRate = withDesiderata.length > 0
         ? Math.round((satisfied / withDesiderata.length) * 100)
         : 0;
@@ -1950,7 +1948,8 @@ async function loadDesiderata() {
     try {
         console.log('📊 Caricamento desiderata in corso...');
         const text = await file.text();
-        desiderataData = parseDesiderataCSV(text);
+        const parsedDes = parseDesiderataCSV(text);
+        desiderataData = parsedDes.data;
         if (desiderataData.length === 0) {
             alert('⚠️ Nessuna riga valida trovata. Verifica encoding UTF-8 e separatori del CSV.');
             return;
@@ -1960,7 +1959,8 @@ async function loadDesiderata() {
         updateStats();
         updateDataStatus();
         populateTeacherSelector();
-        alert(`✅ Caricati ${desiderataData.length} desiderata!`);
+        const skippedNote = parsedDes.skipped > 0 ? ` (${parsedDes.skipped} righe ignorate per formato)` : '';
+        alert(`✅ Caricati ${desiderataData.length} desiderata${skippedNote}!`);
         console.log(`✅ Desiderata caricati: ${desiderataData.length} docenti`);
     } catch (error) {
         console.error('❌ Errore caricamento desiderata:', error);
@@ -2030,16 +2030,17 @@ async function loadHistory() {
 function parseDesiderataCSV(csvText) {
     const lines = csvText.split('\n');
     const data = [];
-    
+    let skipped = 0;
+
     console.log(`🔍 Parsing ${lines.length} righe desiderata...`);
-    
+
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
-        
+
         const columns = parseCSVLine(line);
-        if (columns.length < 10) continue;
-        
+        if (columns.length < 10) { skipped++; continue; }
+
         const teacher = {
             timestamp: columns[0] || '',
             email: columns[1] || '',
@@ -2049,19 +2050,22 @@ function parseDesiderataCSV(csvText) {
             msl1: columns[5] || '',
             msl2: columns[6] || '',
             msl3: columns[7] || '',
-            unwantedHours: parseUnwantedHours(columns.slice(8, 14)), // [8]=Lun [9]=Mar [10]=Mer [11]=Gio [12]=Ven [13]=Sab
+            unwantedHours: parseUnwantedHours(columns.slice(8, 14)),
             schedulePreference: columns[14] || '',
             partTimeNotes: columns[15] || '',
             notes: columns[16] || ''
         };
-        
+
         if (teacher.surname && teacher.surname !== 'Cognome') {
             data.push(teacher);
+        } else {
+            skipped++;
         }
     }
-    
+
+    if (skipped > 0) console.warn(`⚠️ ${skipped} righe ignorate (malformate o intestazione)`);
     console.log(`✅ Parsati ${data.length} desiderata`);
-    return data;
+    return { data, skipped };
 }
 
 function parseHistoryCSV(csvText) {
