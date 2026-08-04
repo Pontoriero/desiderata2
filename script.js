@@ -659,10 +659,15 @@ function checkAssignmentReadiness() {
     const progressSection = document.getElementById('assignment-progress');
     const manualSection = document.getElementById('manual-edit-section');
     
-    if (assignmentSection) assignmentSection.style.display = 'none';
     if (progressSection) progressSection.style.display = 'none';
     if (manualSection) manualSection.style.display = 'none';
-    
+
+    if (currentAssignments.length > 0) {
+        displayAssignmentResults();
+    } else {
+        if (assignmentSection) assignmentSection.style.display = 'none';
+    }
+
     const resetBtn = document.getElementById('reset-btn');
     if (resetBtn) resetBtn.disabled = currentAssignments.length === 0;
 }
