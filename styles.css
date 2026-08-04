@@ -1037,6 +1037,9 @@ input[type="file"]:hover {
 }
 
 .council-not-found { color: #c0392b; }
+.council-ambiguous { color: #b7770d; cursor: help; }
+.council-ambiguous-cell { padding: 9px 10px; font-size: 0.85em; max-width: 160px; }
+.council-ambiguous-text { color: #b7770d; font-weight: 500; }
 
 /* ===================================
    DOCENTI SENZA DESIDERATA

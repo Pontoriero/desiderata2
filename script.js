@@ -2460,22 +2460,45 @@ function isPlaceholder(nome) {
     return /^[A-Z]{1,2}\d{2}(\s|\(|$)/i.test((nome || '').trim());
 }
 
+// Returns {type:'match', assignment} | {type:'ambiguous', candidates} | null
 function matchCouncilDocente(docenteStr) {
     if (!currentAssignments.length) return null;
-    const raw = normalizeString(docenteStr.split(/\s+/)[0]);
+    const tokens = docenteStr.trim().split(/\s+/);
+    const rawSurname = normalizeString(tokens[0]);
+    const rawName = tokens.length > 1 ? normalizeString(tokens.slice(1).join(' ')) : '';
 
-    for (const a of currentAssignments) {
-        if (normalizeString(a.teacher.surname) === raw) return a;
-    }
+    const exactMatches = currentAssignments.filter(a =>
+        normalizeString(a.teacher.surname) === rawSurname
+    );
+    if (exactMatches.length === 1) return { type: 'match', assignment: exactMatches[0] };
+    if (exactMatches.length > 1) return disambiguateCouncilByName(exactMatches, rawName);
 
-    if (raw.length >= 4) {
-        for (const a of currentAssignments) {
+    if (rawSurname.length >= 4) {
+        const fuzzyMatches = currentAssignments.filter(a => {
             const s = normalizeString(a.teacher.surname);
-            if (s.length >= 4 && levenshtein(s, raw) <= 1) return a;
-        }
+            return s.length >= 4 && levenshtein(s, rawSurname) <= 1;
+        });
+        if (fuzzyMatches.length === 1) return { type: 'match', assignment: fuzzyMatches[0] };
+        if (fuzzyMatches.length > 1) return disambiguateCouncilByName(fuzzyMatches, rawName);
     }
 
     return null;
+}
+
+function disambiguateCouncilByName(candidates, rawName) {
+    if (rawName) {
+        const byFullName = candidates.filter(a =>
+            normalizeString(a.teacher.name || '') === rawName
+        );
+        if (byFullName.length === 1) return { type: 'match', assignment: byFullName[0] };
+
+        const byInitial = candidates.filter(a =>
+            normalizeString(a.teacher.name || '').startsWith(rawName[0])
+        );
+        if (byInitial.length === 1) return { type: 'match', assignment: byInitial[0] };
+        if (byInitial.length > 1) return { type: 'ambiguous', candidates: byInitial };
+    }
+    return { type: 'ambiguous', candidates };
 }
 
 function buildClassCouncilMap() {
@@ -2484,7 +2507,7 @@ function buildClassCouncilMap() {
         const cls = record.classe;
         if (!cls) continue;
         if (!classMap.has(cls)) {
-            classMap.set(cls, { seen: new Set(), matched: [], notFound: [], scoperte: 0 });
+            classMap.set(cls, { seen: new Set(), matched: [], notFound: [], ambiguous: [], scoperte: 0 });
         }
         const entry = classMap.get(cls);
         if (isPlaceholder(record.docente)) {
@@ -2493,11 +2516,16 @@ function buildClassCouncilMap() {
             const key = record.docente.toUpperCase();
             if (!entry.seen.has(key)) {
                 entry.seen.add(key);
-                const assignment = matchCouncilDocente(record.docente);
-                if (assignment) {
-                    entry.matched.push({ raw: record.docente, assignment });
-                } else {
+                const result = matchCouncilDocente(record.docente);
+                if (result === null) {
                     entry.notFound.push(record.docente);
+                } else if (result.type === 'match') {
+                    entry.matched.push({ raw: record.docente, assignment: result.assignment });
+                } else {
+                    const names = result.candidates
+                        .map(a => `${a.teacher.surname} ${a.teacher.name || ''}`.trim())
+                        .join(' / ');
+                    entry.ambiguous.push({ raw: record.docente, names });
                 }
             }
         }
@@ -2548,6 +2576,7 @@ function buildClassCouncilHTML() {
     const allItems = [...critical, ...warning, ...ok];
 
     const totalNotFound = allItems.reduce((s, i) => s + i.entry.notFound.length, 0);
+    const totalAmbiguous = allItems.reduce((s, i) => s + i.entry.ambiguous.length, 0);
     const totalScoperte = allItems.reduce((s, i) => s + i.entry.scoperte, 0);
 
     const renderRow = ({ cls, entry, dayCounts, maxDay }) => {
@@ -2567,6 +2596,11 @@ function buildClassCouncilHTML() {
         const notFoundStr = entry.notFound.length > 0
             ? `<span class="council-not-found">${entry.notFound.join(', ')}</span>`
             : '—';
+        const ambiguousStr = entry.ambiguous.length > 0
+            ? entry.ambiguous.map(a =>
+                `<span class="council-ambiguous" title="Possibili: ${a.names}">❓ ${a.raw}</span>`
+              ).join(', ')
+            : '—';
         const scoperteStr = entry.scoperte > 0 ? `<em>${entry.scoperte}</em>` : '—';
         return `
         <tr class="${rowClass}">
@@ -2574,6 +2608,7 @@ function buildClassCouncilHTML() {
             <td><span class="council-badge ${statusClass}">${statusLabel}</span></td>
             <td class="council-count-cell">${entry.matched.length}</td>
             ${dayCells}
+            <td class="council-ambiguous-cell">${ambiguousStr}</td>
             <td class="council-notfound-cell">${notFoundStr}</td>
             <td class="council-scoperte-cell">${scoperteStr}</td>
         </tr>`;
@@ -2587,12 +2622,14 @@ function buildClassCouncilHTML() {
             <span class="council-badge council-badge-red">Critiche: ${critical.length}</span>
             <span class="council-badge council-badge-yellow">Attenzione: ${warning.length}</span>
             <span class="council-badge council-badge-green">OK: ${ok.length}</span>
-            ${totalNotFound > 0 ? `<span class="council-warn-text">⚠️ ${totalNotFound} docenti non trovati</span>` : ''}
-            ${totalScoperte > 0 ? `<span class="council-info-text">📋 ${totalScoperte} ore scoperte (non assegnate)</span>` : ''}
+            ${totalAmbiguous > 0 ? `<span class="council-ambiguous-text">❓ ${totalAmbiguous} ambigui (omonimi)</span>` : ''}
+            ${totalNotFound > 0 ? `<span class="council-warn-text">⚠️ ${totalNotFound} non trovati</span>` : ''}
+            ${totalScoperte > 0 ? `<span class="council-info-text">📋 ${totalScoperte} ore scoperte</span>` : ''}
         </div>
         <p class="council-threshold-note">
             Soglie: <strong>Attenzione</strong> ≥ ${CONSIGLIO_SOGLIA_GIALLO} docenti stesso giorno &nbsp;|&nbsp;
             <strong>Critica</strong> ≥ ${CONSIGLIO_SOGLIA_ROSSO} docenti stesso giorno
+            ${totalAmbiguous > 0 ? ' &nbsp;|&nbsp; ❓ = cognome ambiguo, passa il mouse per i possibili abbinamenti' : ''}
         </p>
         <div class="council-table-wrapper">
             <table class="council-table">
@@ -2602,6 +2639,7 @@ function buildClassCouncilHTML() {
                         <th>Stato</th>
                         <th>Trovati</th>
                         ${days.map(d => `<th>${d.substring(0, 3)}</th>`).join('')}
+                        <th>❓ Ambigui</th>
                         <th>Non trovati</th>
                         <th>Scoperte</th>
                     </tr>
