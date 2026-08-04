@@ -472,6 +472,7 @@ function confirmAssignments() {
         // Aggiorna tutte le visualizzazioni
         updateStats();
         updateMSLDistribution();
+        displayClassCouncils();
         if (document.getElementById('teachers').classList.contains('active')) {
             displayTeachers();
         }
@@ -620,6 +621,7 @@ function applyManualChanges() {
     if (changesCount > 0) {
         displayAssignmentResults();
         saveData();
+        displayClassCouncils();
         document.getElementById('manual-edit-section').style.display = 'none';
         alert(`✅ Applicate ${changesCount} modifiche manuali`);
     } else {
