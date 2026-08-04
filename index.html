@@ -122,6 +122,11 @@
             
             <!-- Tab Docenti -->
             <div id="teachers" class="tab-content">
+                <div id="teacher-change-notice" style="display:none;" class="status-box status-warning" style="margin-bottom:12px;">
+                    ⚠️ <strong>Dati docenti modificati dopo l'ultima assegnazione.</strong>
+                    <a href="#" onclick="showTab('assignment'); return false;">Ricalcola l'assegnazione</a> per includere le modifiche.
+                    <button onclick="document.getElementById('teacher-change-notice').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;font-size:1.1em;line-height:1;">✕</button>
+                </div>
                 <div class="search-section">
                     <input type="text" id="teacher-search" placeholder="🔍 Cerca docente..." onkeyup="filterTeachers()">
                     <select id="rotation-filter" onchange="filterTeachers()">
@@ -251,6 +256,55 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Modal: Aggiungi / Modifica Docente -->
+    <div id="teacher-modal-overlay" class="tm-overlay" style="display:none;" onclick="closeTeacherModal()">
+      <div class="tm-dialog" onclick="event.stopPropagation()">
+        <div class="tm-header">
+          <h3 id="tm-title">Docente</h3>
+          <button class="tm-close" onclick="closeTeacherModal()">✕</button>
+        </div>
+        <div class="tm-body">
+          <input type="hidden" id="tm-editing-id">
+          <div class="tm-field-row">
+            <div class="tm-field">
+              <label class="tm-label">Cognome <span class="tm-req">*</span></label>
+              <input type="text" id="tm-surname" class="tm-input" placeholder="ROSSI">
+            </div>
+            <div class="tm-field">
+              <label class="tm-label">Nome <span class="tm-req">*</span></label>
+              <input type="text" id="tm-name" class="tm-input" placeholder="Mario">
+            </div>
+            <div class="tm-field tm-field-sm">
+              <label class="tm-label">Ore settim.</label>
+              <input type="number" id="tm-hours" class="tm-input" min="1" max="24" placeholder="18">
+            </div>
+          </div>
+          <div class="tm-field-row">
+            <div class="tm-field">
+              <label class="tm-label">MSL Opzione 1</label>
+              <select id="tm-msl1" class="tm-input"></select>
+            </div>
+            <div class="tm-field">
+              <label class="tm-label">MSL Opzione 2</label>
+              <select id="tm-msl2" class="tm-input"></select>
+            </div>
+            <div class="tm-field">
+              <label class="tm-label">MSL Opzione 3 (fallback)</label>
+              <select id="tm-msl3" class="tm-input"></select>
+            </div>
+          </div>
+          <div class="tm-field">
+            <label class="tm-label">Note</label>
+            <textarea id="tm-notes" class="tm-input tm-textarea" rows="2" placeholder="Note opzionali..."></textarea>
+          </div>
+        </div>
+        <div class="tm-footer">
+          <button class="btn btn-secondary" onclick="closeTeacherModal()">Annulla</button>
+          <button class="btn btn-primary" onclick="saveTeacherFromModal()">💾 Salva</button>
+        </div>
+      </div>
     </div>
 
     <script src="script.js"></script>

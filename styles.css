@@ -1139,3 +1139,128 @@ tr.missing-desiderata:hover { background: #f5f5f5 !important; }
     color: #495057;
     border: 1px solid #ced4da;
 }
+
+/* ===================================
+   TEACHER CARD — OVERRIDE MANUALI
+   =================================== */
+
+.teacher-manual-badge {
+    display: inline-block;
+    font-size: 0.74em;
+    padding: 2px 9px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+.teacher-manual-badge-added  { background: #d5f5e3; color: #1e8449; border: 1px solid #a9dfbf; }
+.teacher-manual-badge-edited { background: #d6eaf8; color: #1a5276; border: 1px solid #a9cce3; }
+
+.teacher-card-btn {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 2px 7px;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    line-height: 1.4;
+}
+.teacher-card-btn:hover { background: #f0f0f0; }
+.teacher-card-btn-danger:hover { background: #fdebd0; border-color: #e74c3c; }
+
+/* ===================================
+   MODAL AGGIUNGI / MODIFICA DOCENTE
+   =================================== */
+
+.tm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.tm-dialog {
+    background: white;
+    border-radius: 10px;
+    width: 560px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+}
+
+.tm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f4f8fb;
+    border-radius: 10px 10px 0 0;
+}
+.tm-header h3 { margin: 0; font-size: 1.05em; color: #1a5276; }
+
+.tm-close {
+    background: none;
+    border: none;
+    font-size: 1.15em;
+    cursor: pointer;
+    color: #666;
+    padding: 2px 7px;
+    border-radius: 4px;
+}
+.tm-close:hover { background: #e0e0e0; color: #333; }
+
+.tm-body {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.tm-field-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.tm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 130px;
+}
+.tm-field-sm { flex: 0 1 90px; }
+
+.tm-label { font-size: 0.84em; font-weight: 600; color: #333; }
+.tm-req   { color: #e74c3c; }
+
+.tm-input {
+    padding: 7px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 0.9em;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+.tm-input:focus {
+    outline: none;
+    border-color: #2980b9;
+    box-shadow: 0 0 0 2px rgba(41,128,185,0.15);
+}
+
+.tm-textarea { resize: vertical; min-height: 52px; }
+
+.tm-footer {
+    padding: 13px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: #f9f9f9;
+    border-radius: 0 0 10px 10px;
+}

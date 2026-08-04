@@ -38,8 +38,9 @@ Sei SICURO di voler procedere?`;
         localStorage.removeItem('blasePascalDesiderata');
         localStorage.removeItem('blasePascalHistory');
         localStorage.removeItem('blasePascalAssignments');
+        localStorage.removeItem('blasePascalManualOverrides');
         console.log('💾 LocalStorage pulito');
-        
+
         // 2. Reset variabili globali
         desiderataData = [];
         historyData = [];
@@ -47,6 +48,7 @@ Sei SICURO di voler procedere?`;
         filteredData = [];
         currentAssignments = [];
         classCouncilsData = [];
+        manualTeacherOverrides = {};
         console.log('🔧 Variabili globali resettate');
         
         // 3. Reset interfaccia
@@ -1805,6 +1807,8 @@ let integratedData = [];
 let filteredData = [];
 let currentAssignments = []; // Risultati dell'assegnazione automatica
 let classCouncilsData = [];
+let manualTeacherOverrides = {}; // {teacherId: {addedManually|editedManually, ...}}
+let _teacherModalOriginalValues = null; // snapshot aperto al modal per calcolo diff
 
 const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 const CONSIGLIO_SOGLIA_GIALLO = 2;
@@ -1836,21 +1840,27 @@ function loadStoredData() {
     try {
         const savedDesiderata = localStorage.getItem('blasePascalDesiderata');
         const savedHistory = localStorage.getItem('blasePascalHistory');
-        
+        const savedOverrides = localStorage.getItem('blasePascalManualOverrides');
+
         if (savedDesiderata) {
             desiderataData = JSON.parse(savedDesiderata);
             console.log(`📊 Caricati ${desiderataData.length} desiderata salvati`);
         }
-        
+
         if (savedHistory) {
             historyData = JSON.parse(savedHistory);
             console.log(`📋 Caricati ${historyData.length} storico salvati`);
         }
-        
+
+        if (savedOverrides) {
+            try { manualTeacherOverrides = JSON.parse(savedOverrides); } catch(e) {}
+            console.log(`✏️ Caricati ${Object.keys(manualTeacherOverrides).length} override manuali`);
+        }
+
         if (desiderataData.length === 0 && historyData.length === 0) {
             console.log('ℹ️ Nessun dato salvato trovato');
         }
-        
+
         integrateData();
         updateStats();
         updateDataStatus();
@@ -1885,6 +1895,7 @@ function saveData() {
         localStorage.setItem('blasePascalDesiderata', JSON.stringify(desiderataData));
         localStorage.setItem('blasePascalHistory', JSON.stringify(historyData));
         localStorage.setItem('blasePascalAssignments', JSON.stringify(currentAssignments));
+        localStorage.setItem('blasePascalManualOverrides', JSON.stringify(manualTeacherOverrides));
         console.log('💾 Dati salvati correttamente');
     } catch (error) {
         console.error('❌ Errore salvataggio:', error);
@@ -2196,13 +2207,220 @@ function integrateData() {
         }
     });
     
+    applyManualOverrides();
     filteredData = [...integratedData];
-    console.log(`✅ Integrati ${integratedData.length} docenti totali`);
+    console.log(`✅ Integrati ${integratedData.length} docenti totali (di cui ${Object.keys(manualTeacherOverrides).length} con override manuali)`);
     
     // Aggiorna il selettore se la tab dettaglio è attiva
     if (document.getElementById('detail').classList.contains('active')) {
         populateTeacherSelector();
     }
+}
+
+// ===================================
+// OVERRIDE MANUALI DOCENTI
+// ===================================
+
+function applyManualOverrides() {
+    for (const [key, override] of Object.entries(manualTeacherOverrides)) {
+        if (override.addedManually) {
+            const existing = integratedData.find(t => getTeacherId(t) === key);
+            if (existing) {
+                console.log(`[override] ${key}: già nell'import reale — aggiunta manuale ignorata (dati CSV prioritari)`);
+            } else {
+                integratedData.push(buildManualTeacherObject(override));
+            }
+        } else if (override.editedManually && override.fields) {
+            const target = integratedData.find(t => getTeacherId(t) === key);
+            if (target) {
+                const nameWillChange =
+                    (override.fields.surname !== undefined && override.fields.surname !== target.surname) ||
+                    (override.fields.name    !== undefined && override.fields.name    !== target.name);
+                if (nameWillChange) target._originalTeacherId = key;
+                Object.assign(target, override.fields);
+                target.editedManually = true;
+            } else {
+                console.log(`[override] ${key} (editedManually) non trovato in integratedData — skip`);
+            }
+        }
+    }
+}
+
+function buildManualTeacherObject(override) {
+    return {
+        surname: override.surname || '',
+        name: override.name || '',
+        hours: override.hours || '',
+        msl1: override.msl1 || '',
+        msl2: override.msl2 || '',
+        msl3: override.msl3 || '',
+        notes: override.notes || '',
+        hasDesiderata: !!(override.msl1),
+        hasHistory: false,
+        history: {},
+        rotationYears: 0,
+        mustRotate: false,
+        lastMSL: 'N/A',
+        matchWarning: null,
+        addedManually: true
+    };
+}
+
+// ===================================
+// MODAL AGGIUNGI / MODIFICA DOCENTE
+// ===================================
+
+function openTeacherModal(teacherId) {
+    const overlay = document.getElementById('teacher-modal-overlay');
+    const title   = document.getElementById('tm-title');
+    const editingIdField = document.getElementById('tm-editing-id');
+
+    // Popola i select giorno
+    ['tm-msl1', 'tm-msl2', 'tm-msl3'].forEach(selId => {
+        document.getElementById(selId).innerHTML =
+            '<option value="">— nessuna —</option>' +
+            days.map(d => `<option value="${d}">${d}</option>`).join('');
+    });
+
+    if (teacherId) {
+        title.textContent = '✏️ Modifica Docente';
+        editingIdField.value = teacherId;
+        const teacher = integratedData.find(t => getTeacherId(t) === teacherId);
+        if (teacher) {
+            document.getElementById('tm-surname').value = teacher.surname || '';
+            document.getElementById('tm-name').value    = teacher.name    || '';
+            document.getElementById('tm-hours').value   = teacher.hours   || '';
+            document.getElementById('tm-msl1').value    = teacher.msl1    || '';
+            document.getElementById('tm-msl2').value    = teacher.msl2    || '';
+            document.getElementById('tm-msl3').value    = teacher.msl3    || '';
+            document.getElementById('tm-notes').value   = teacher.notes   || '';
+            _teacherModalOriginalValues = {
+                surname: teacher.surname || '',
+                name:    teacher.name    || '',
+                hours:   String(teacher.hours || ''),
+                msl1:    teacher.msl1   || '',
+                msl2:    teacher.msl2   || '',
+                msl3:    teacher.msl3   || '',
+                notes:   teacher.notes  || ''
+            };
+        }
+    } else {
+        title.textContent = '➕ Aggiungi Docente';
+        editingIdField.value = '';
+        ['tm-surname', 'tm-name', 'tm-hours', 'tm-notes'].forEach(id =>
+            { document.getElementById(id).value = ''; });
+        ['tm-msl1', 'tm-msl2', 'tm-msl3'].forEach(id =>
+            { document.getElementById(id).value = ''; });
+        _teacherModalOriginalValues = null;
+    }
+
+    overlay.style.display = 'flex';
+    document.getElementById('tm-surname').focus();
+}
+
+function closeTeacherModal() {
+    document.getElementById('teacher-modal-overlay').style.display = 'none';
+}
+
+function saveTeacherFromModal() {
+    const surname = document.getElementById('tm-surname').value.trim().toUpperCase();
+    const name    = document.getElementById('tm-name').value.trim();
+    const hours   = document.getElementById('tm-hours').value.trim();
+    const msl1    = document.getElementById('tm-msl1').value;
+    const msl2    = document.getElementById('tm-msl2').value;
+    const msl3    = document.getElementById('tm-msl3').value;
+    const notes   = document.getElementById('tm-notes').value.trim();
+    const editingId = document.getElementById('tm-editing-id').value;
+
+    if (!surname || !name) { alert('Cognome e Nome sono obbligatori.'); return; }
+
+    const newId = getTeacherId({ surname, name });
+
+    if (!editingId) {
+        // Modalità aggiunta
+        const existing = integratedData.find(t => getTeacherId(t) === newId);
+        if (existing) {
+            if (confirm(`⚠️ "${surname} ${name}" è già presente nel sistema.\n\nVuoi modificarlo invece di aggiungerne un duplicato?`)) {
+                closeTeacherModal();
+                openTeacherModal(newId);
+            }
+            return;
+        }
+        manualTeacherOverrides[newId] = { addedManually: true, surname, name, hours, msl1, msl2, msl3, notes };
+
+    } else {
+        // Modalità modifica
+        const isManuallyAdded = !!manualTeacherOverrides[editingId]?.addedManually;
+
+        if (isManuallyAdded) {
+            // Docente aggiunto manualmente: aggiorna l'intero record
+            const record = { addedManually: true, surname, name, hours, msl1, msl2, msl3, notes };
+            if (newId !== editingId) delete manualTeacherOverrides[editingId];
+            manualTeacherOverrides[newId] = record;
+        } else {
+            // Docente da CSV: salva solo i campi effettivamente cambiati
+            const orig = _teacherModalOriginalValues || {};
+            const fields = {};
+            if (surname !== orig.surname)      fields.surname = surname;
+            if (name    !== orig.name)         fields.name    = name;
+            if (hours   !== orig.hours)        fields.hours   = hours;
+            if (msl1    !== orig.msl1)         fields.msl1    = msl1;
+            if (msl2    !== orig.msl2)         fields.msl2    = msl2;
+            if (msl3    !== orig.msl3)         fields.msl3    = msl3;
+            if (notes   !== orig.notes)        fields.notes   = notes;
+
+            if (Object.keys(fields).length === 0) {
+                alert('Nessuna modifica rilevata.');
+                closeTeacherModal();
+                return;
+            }
+
+            const existingOverride = manualTeacherOverrides[editingId];
+            manualTeacherOverrides[editingId] = {
+                editedManually: true,
+                fields: existingOverride?.editedManually
+                    ? { ...existingOverride.fields, ...fields }
+                    : fields
+            };
+        }
+    }
+
+    closeTeacherModal();
+    saveData();
+    refreshAfterTeacherChange();
+}
+
+function removeManualTeacher(teacherId) {
+    if (!manualTeacherOverrides[teacherId]?.addedManually) return;
+    const teacher = integratedData.find(t => getTeacherId(t) === teacherId);
+    const displayName = teacher
+        ? `${teacher.surname} ${teacher.name || ''}`.trim()
+        : teacherId;
+    if (!confirm(`Rimuovere "${displayName}" dall'elenco?\n\nQuesto docente è stato aggiunto manualmente e non è presente nei file CSV importati.`)) return;
+    delete manualTeacherOverrides[teacherId];
+    saveData();
+    refreshAfterTeacherChange();
+}
+
+function refreshAfterTeacherChange() {
+    integrateData();
+    // Remap currentAssignments per docenti il cui teacherId è cambiato (modifica nome/cognome)
+    if (currentAssignments.length > 0) {
+        currentAssignments = currentAssignments.map(a => {
+            const byId   = integratedData.find(t => getTeacherId(t) === a.teacherId);
+            if (byId)    return { ...a, teacher: byId };
+            const byOrig = integratedData.find(t => t._originalTeacherId === a.teacherId);
+            if (byOrig)  return { ...a, teacherId: getTeacherId(byOrig), teacher: byOrig };
+            return a;
+        });
+        saveData();
+        const notice = document.getElementById('teacher-change-notice');
+        if (notice) notice.style.display = 'block';
+    }
+    updateStats();
+    updateMSLDistribution();
+    updateDataStatus();
+    filterTeachers();
 }
 
 function normalizeString(s) {
@@ -2375,59 +2593,74 @@ function updateMSLDistribution() {
 function displayTeachers() {
     const container = document.getElementById('teachers-list');
     if (!container) return;
-    
+
+    const addBtn = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 2px;">
+        <span style="color:#555;font-size:0.9em;">${filteredData.length} docenti visualizzati</span>
+        <button class="btn" onclick="openTeacherModal(null)" style="padding:6px 14px;font-size:0.9em;">➕ Aggiungi Docente</button>
+    </div>`;
+
     if (filteredData.length === 0) {
-        container.innerHTML = '<p class="text-center">Carica i dati per visualizzare l\'elenco docenti</p>';
+        container.innerHTML = addBtn + '<p class="text-center" style="color:#888;">Nessun docente da visualizzare</p>';
         return;
     }
-    
-    container.innerHTML = '<div class="teacher-grid"></div>';
+
+    container.innerHTML = addBtn + '<div class="teacher-grid"></div>';
     const grid = container.querySelector('.teacher-grid');
-    
+
     filteredData.forEach(teacher => {
         const card = createTeacherCard(teacher);
         grid.appendChild(card);
     });
-    
+
     console.log(`👥 Visualizzati ${filteredData.length} docenti`);
 }
 
 function createTeacherCard(teacher) {
     const card = document.createElement('div');
     card.className = 'teacher-card';
-    
-    // Classificazione card
+
     if (teacher.mustRotate) {
         card.classList.add('must-rotate');
     } else if (teacher.rotationYears >= 2) {
         card.classList.add('should-rotate');
     }
-    
-    // MSL info
+
     const mslParts = [teacher.msl1, teacher.msl2, teacher.msl3]
         .filter((d, i, arr) => d && arr.indexOf(d) === i);
     const mslInfo = !teacher.hasDesiderata ? 'NON COMPILATO' : mslParts.join(' / ') || 'Non specificato';
-    
-    // Badge rotazione
+
     let rotationBadge = '';
     if (teacher.mustRotate) {
         rotationBadge = '<span class="rotation-badge must">🔄 DEVE RUOTARE</span>';
     } else if (teacher.rotationYears >= 2) {
         rotationBadge = '<span class="rotation-badge should">⚠️ PRIORITÀ</span>';
     }
-    
-    // Ore non desiderate (solo prime 3 per spazio)
-    const unwantedSummary = teacher.unwantedHours ? 
+
+    const unwantedSummary = teacher.unwantedHours ?
         Object.entries(teacher.unwantedHours)
             .slice(0, 3)
             .map(([day, hours]) => `${day}: ${hours.join(',')}`)
             .join(' • ') : '';
-    
+
+    const teacherId = getTeacherId(teacher);
+
+    const manualBadge = teacher.addedManually
+        ? '<span class="teacher-manual-badge teacher-manual-badge-added">➕ aggiunto manualmente</span>'
+        : teacher.editedManually
+        ? '<span class="teacher-manual-badge teacher-manual-badge-edited">✏️ dati modificati</span>'
+        : '';
+
+    const editBtn   = `<button class="teacher-card-btn" onclick="openTeacherModal('${teacherId}')" title="Modifica">✏️</button>`;
+    const removeBtn = teacher.addedManually
+        ? `<button class="teacher-card-btn teacher-card-btn-danger" onclick="removeManualTeacher('${teacherId}')" title="Rimuovi">🗑️</button>`
+        : '';
+
     card.innerHTML = `
         <div class="teacher-name">
-            ${teacher.surname} ${teacher.name || ''}
-            ${rotationBadge}
+            <span>${teacher.surname} ${teacher.name || ''}</span>
+            <span style="display:flex;gap:4px;align-items:center;">${rotationBadge}${editBtn}${removeBtn}</span>
         </div>
+        ${manualBadge}
         <div class="teacher-info">
             <strong>Ore settimanali:</strong> ${teacher.hours || 'N/A'}<br>
             <strong>MSL desiderato:</strong> ${mslInfo}<br>
@@ -2436,12 +2669,12 @@ function createTeacherCard(teacher) {
             ${unwantedSummary ? `<br><strong>Ore non desiderate:</strong> ${unwantedSummary}` : ''}
         </div>
         ${teacher.notes ? `
-            <div style="margin-top: 10px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #3498db;">
+            <div style="margin-top:10px;padding:8px;background:#f8f9fa;border-radius:4px;font-size:0.85em;border-left:3px solid #3498db;">
                 <strong>Note:</strong> ${teacher.notes}
             </div>
         ` : ''}
     `;
-    
+
     return card;
 }
 
