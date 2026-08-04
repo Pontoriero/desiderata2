@@ -193,48 +193,6 @@ function exportAssignmentTable() {
 }
 
 // ===================================
-// MODIFICA ALLA FUNZIONE displayAssignmentResults
-// ===================================
-
-// Sostituisci la funzione displayAssignmentResults esistente con questa versione aggiornata:
-
-function displayAssignmentResults() {
-    document.getElementById('assignment-results').style.display = 'block';
-    document.getElementById('reset-btn').disabled = false;
-
-    const stats = calculateAssignmentStats();
-    displayResultsSummary(stats);
-    displayAssignmentTable();
-    updateAssignmentSummary();
-
-    console.log('📊 Risultati assegnazione visualizzati');
-}
-
-// ===================================
-// AGGIORNAMENTO HTML NECESSARIO
-// ===================================
-
-/*
-Nel file index.html, nella sezione con id="assignment-results", 
-sostituisci il div con class="results-actions" con questo:
-
-<div class="results-actions">
-    <button class="btn btn-success" onclick="confirmAssignments()">
-        ✅ Conferma Assegnazioni
-    </button>
-    <button class="btn btn-warning" onclick="showManualEdit()">
-        ✏️ Modifica Manualmente
-    </button>
-    <button class="btn btn-primary" onclick="exportAssignmentTable()" style="background: linear-gradient(135deg, #27ae60, #229954);">
-        📊 Esporta Tabella CSV
-    </button>
-    <button class="btn btn-info" onclick="exportAssignments()">
-        📄 Esporta Report Completo
-    </button>
-</div>
-*/
-
-// ===================================
 // VISUALIZZAZIONE RISULTATI
 // ===================================
 
@@ -509,15 +467,15 @@ function showManualEdit() {
     const manualSection = document.getElementById('manual-edit-section');
     const content = document.getElementById('manual-edit-content');
     
-    // Genera interfaccia di modifica per conflitti
-    const conflictAssignments = currentAssignments.filter(a => !a.satisfied || a.rotationForced);
-    
+    // Solo conflitti reali: non soddisfatti e non su fallback MSL3
+    const conflictAssignments = currentAssignments.filter(a => !a.satisfied && !a.fallback3);
+
     if (conflictAssignments.length === 0) {
         content.innerHTML = '<p class="text-center">✅ Nessuna assegnazione necessita di modifica manuale!</p>';
     } else {
         content.innerHTML = `
             <div style="margin-bottom: 20px;">
-                <h4>Assegnazioni che potrebbero necessitare di revisione:</h4>
+                <h4>Assegnazioni che potrebbero necessitare di revisione (${conflictAssignments.length}):</h4>
                 <p>Modifica le assegnazioni che ritieni necessario cambiare.</p>
             </div>
             ${conflictAssignments.map(assignment => createManualEditItem(assignment)).join('')}
@@ -527,8 +485,9 @@ function showManualEdit() {
             </div>
         `;
     }
-    
+
     manualSection.style.display = 'block';
+    manualSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function createManualEditItem(assignment) {
