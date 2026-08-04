@@ -466,48 +466,76 @@ function resetAssignments() {
 function showManualEdit() {
     const manualSection = document.getElementById('manual-edit-section');
     const content = document.getElementById('manual-edit-content');
-    
-    // Solo conflitti reali: non soddisfatti e non su fallback MSL3
-    const conflictAssignments = currentAssignments.filter(a => !a.satisfied && !a.fallback3);
 
-    if (conflictAssignments.length === 0) {
-        content.innerHTML = '<p class="text-center">✅ Nessuna assegnazione necessita di modifica manuale!</p>';
-    } else {
-        content.innerHTML = `
-            <div style="margin-bottom: 20px;">
-                <h4>Assegnazioni che potrebbero necessitare di revisione (${conflictAssignments.length}):</h4>
-                <p>Modifica le assegnazioni che ritieni necessario cambiare.</p>
-            </div>
-            ${conflictAssignments.map(assignment => createManualEditItem(assignment)).join('')}
-            <div style="text-align: center; margin-top: 20px;">
-                <button class="btn btn-success" onclick="applyManualChanges()">💾 Applica Modifiche</button>
-                <button class="btn btn-secondary" onclick="cancelManualEdit()">❌ Annulla</button>
-            </div>
-        `;
-    }
+    const total = currentAssignments.length;
+    const conflictCount = currentAssignments.filter(a => !a.satisfied && !a.fallback3).length;
+
+    const sorted = [...currentAssignments].sort((a, b) =>
+        (a.teacher.surname || '').localeCompare(b.teacher.surname || '', 'it')
+    );
+
+    content.innerHTML = `
+        <div style="margin-bottom: 16px;">
+            <h4>Tutte le assegnazioni (${total} totali, ${conflictCount} da rivedere)</h4>
+            <p style="margin-top:4px;color:#666;">Modifica qualsiasi riga. Le righe ⚠️ richiedono attenzione.</p>
+        </div>
+        <div class="manual-edit-controls">
+            <input type="text" id="manual-search" placeholder="🔍 Cerca cognome / nome..."
+                   oninput="filterManualEdit()">
+            <select id="manual-filter-status" onchange="filterManualEdit()">
+                <option value="">Tutti (${total})</option>
+                <option value="conflict">⚠️ Solo da rivedere (${conflictCount})</option>
+                <option value="ok">✅ Solo già ok (${total - conflictCount})</option>
+            </select>
+        </div>
+        <div id="manual-edit-list">
+            ${sorted.map(a => createManualEditItem(a)).join('')}
+        </div>
+        <div style="text-align:center; margin-top:20px;">
+            <button class="btn btn-success" onclick="applyManualChanges()">💾 Applica Modifiche</button>
+            <button class="btn btn-secondary" onclick="cancelManualEdit()">❌ Annulla</button>
+        </div>
+    `;
 
     manualSection.style.display = 'block';
     manualSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function filterManualEdit() {
+    const search = (document.getElementById('manual-search')?.value || '').toLowerCase();
+    const status = document.getElementById('manual-filter-status')?.value || '';
+    document.querySelectorAll('.manual-edit-item').forEach(item => {
+        const nameMatch = !search || item.dataset.name.includes(search);
+        const statusMatch = !status || item.dataset.status === status;
+        item.style.display = nameMatch && statusMatch ? '' : 'none';
+    });
+}
+
 function createManualEditItem(assignment) {
     const teacher = assignment.teacher;
     const itemId = `manual-${assignment.teacherId}`;
-    
+    const isConflict = !assignment.satisfied && !assignment.fallback3;
+    const statusLabel = isConflict
+        ? '<span class="manual-badge manual-badge-conflict">⚠️ Da rivedere</span>'
+        : '<span class="manual-badge manual-badge-ok">✅ Ok</span>';
+    const msl2part = assignment.requestedMSL2 && assignment.requestedMSL2 !== assignment.requestedMSL1
+        ? ` / ${assignment.requestedMSL2}` : '';
+    const msl3part = assignment.requestedMSL3 ? ` / ${assignment.requestedMSL3}` : '';
+
     return `
-        <div class="manual-edit-item">
-            <div>
-                <div class="manual-edit-teacher">${teacher.surname} ${teacher.name || ''}</div>
+        <div class="manual-edit-item ${isConflict ? 'manual-edit-item--conflict' : ''}"
+             data-name="${(teacher.surname + ' ' + (teacher.name || '')).toLowerCase()}"
+             data-status="${isConflict ? 'conflict' : 'ok'}">
+            <div class="manual-edit-info">
+                <div class="manual-edit-teacher">${teacher.surname} ${teacher.name || ''} ${statusLabel}</div>
                 <div class="manual-edit-current">
-                    Attuale: <strong>${assignment.assignedMSL}</strong> | 
-                    Richieste: ${assignment.requestedMSL1 || 'N/A'}${assignment.requestedMSL2 && assignment.requestedMSL2 !== assignment.requestedMSL1 ? ` / ${assignment.requestedMSL2}` : ''}
+                    Assegnato: <strong>${assignment.assignedMSL}</strong> &nbsp;|&nbsp;
+                    Richieste: ${assignment.requestedMSL1 || 'N/A'}${msl2part}${msl3part}
                 </div>
             </div>
             <select class="manual-edit-select" id="${itemId}" data-teacher-id="${assignment.teacherId}">
                 ${days.map(day => `
-                    <option value="${day}" ${day === assignment.assignedMSL ? 'selected' : ''}>
-                        ${day}
-                    </option>
+                    <option value="${day}" ${day === assignment.assignedMSL ? 'selected' : ''}>${day}</option>
                 `).join('')}
             </select>
         </div>
