@@ -37,6 +37,7 @@ Sei SICURO di voler procedere?`;
         // 1. Cancella localStorage
         localStorage.removeItem('blasePascalDesiderata');
         localStorage.removeItem('blasePascalHistory');
+        localStorage.removeItem('blasePascalAssignments');
         console.log('💾 LocalStorage pulito');
         
         // 2. Reset variabili globali
@@ -482,11 +483,12 @@ function resetAssignments() {
     
     if (confirmed) {
         currentAssignments = [];
+        localStorage.removeItem('blasePascalAssignments');
         document.getElementById('assignment-results').style.display = 'none';
         document.getElementById('manual-edit-section').style.display = 'none';
         document.getElementById('assignment-summary-section').style.display = 'none';
         document.getElementById('reset-btn').disabled = true;
-        
+        displayClassCouncils();
         console.log('🔄 Assegnazioni reset');
     }
 }
@@ -614,8 +616,8 @@ function applyManualChanges() {
     });
     
     if (changesCount > 0) {
-        // Aggiorna visualizzazione
         displayAssignmentResults();
+        saveData();
         document.getElementById('manual-edit-section').style.display = 'none';
         alert(`✅ Applicate ${changesCount} modifiche manuali`);
     } else {
@@ -769,7 +771,8 @@ async function runAssignmentAlgorithm() {
 
         hideProgress();
         displayAssignmentResults();
-        
+        saveData();
+
     } catch (error) {
         console.error('❌ Errore nell\'algoritmo:', error);
         hideProgress();
@@ -1847,6 +1850,27 @@ function loadStoredData() {
         integrateData();
         updateStats();
         updateDataStatus();
+
+        const savedAssignments = localStorage.getItem('blasePascalAssignments');
+        if (savedAssignments) {
+            const raw = JSON.parse(savedAssignments);
+            // Re-link teacher objects to current integratedData instances
+            currentAssignments = raw.map(a => {
+                const teacher = integratedData.find(t => getTeacherId(t) === a.teacherId) || a.teacher;
+                return { ...a, teacher };
+            });
+            // Re-apply confirmed MSL to integratedData (keeps teacher cards accurate)
+            currentAssignments.forEach(a => {
+                if (!a.assignedMSL) return;
+                const teacher = integratedData.find(t => getTeacherId(t) === a.teacherId);
+                if (teacher) {
+                    teacher.assignedMSL2026 = a.assignedMSL;
+                    teacher.assignmentReason = a.reason;
+                    teacher.assignmentSatisfied = a.satisfied;
+                }
+            });
+            console.log(`🎯 Caricate ${currentAssignments.length} assegnazioni salvate`);
+        }
     } catch (error) {
         console.error('❌ Errore caricamento dati salvati:', error);
     }
@@ -1856,6 +1880,7 @@ function saveData() {
     try {
         localStorage.setItem('blasePascalDesiderata', JSON.stringify(desiderataData));
         localStorage.setItem('blasePascalHistory', JSON.stringify(historyData));
+        localStorage.setItem('blasePascalAssignments', JSON.stringify(currentAssignments));
         console.log('💾 Dati salvati correttamente');
     } catch (error) {
         console.error('❌ Errore salvataggio:', error);
