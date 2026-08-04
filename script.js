@@ -46,6 +46,7 @@ Sei SICURO di voler procedere?`;
         integratedData = [];
         filteredData = [];
         currentAssignments = [];
+        classCouncilsData = [];
         console.log('🔧 Variabili globali resettate');
         
         // 3. Reset interfaccia
@@ -112,7 +113,10 @@ function resetAllUI() {
     
     const rotationFilter = document.getElementById('rotation-filter');
     if (rotationFilter) rotationFilter.value = '';
-    
+
+    const councilsContent = document.getElementById('class-councils-content');
+    if (councilsContent) councilsContent.innerHTML = '<p>Carica i dati per visualizzare l\'analisi per consiglio di classe</p>';
+
     console.log('🎨 Interfaccia utente resettata');
 }
 
@@ -1947,11 +1951,15 @@ async function loadDesiderata() {
         console.log('📊 Caricamento desiderata in corso...');
         const text = await file.text();
         desiderataData = parseDesiderataCSV(text);
+        if (desiderataData.length === 0) {
+            alert('⚠️ Nessuna riga valida trovata. Verifica encoding UTF-8 e separatori del CSV.');
+            return;
+        }
         saveData();
         integrateData();
         updateStats();
         updateDataStatus();
-        populateTeacherSelector(); // Aggiorna selettore
+        populateTeacherSelector();
         alert(`✅ Caricati ${desiderataData.length} desiderata!`);
         console.log(`✅ Desiderata caricati: ${desiderataData.length} docenti`);
     } catch (error) {
@@ -1968,6 +1976,10 @@ async function loadClassCouncils() {
         console.log('📚 Caricamento consigli di classe in corso...');
         const text = await file.text();
         classCouncilsData = parseClassCouncilsCSV(text);
+        if (classCouncilsData.length === 0) {
+            alert('⚠️ Nessuna riga valida trovata. Verifica il formato CSV (colonne: Classe concorso, classe, materia, N. ORE/SETT, docente).');
+            return;
+        }
         const numClassi = new Set(classCouncilsData.map(r => r.classe)).size;
         alert(`✅ Caricati dati di ${numClassi} classi (${classCouncilsData.length} righe)!`);
         console.log(`✅ Consigli di classe caricati: ${classCouncilsData.length} righe, ${numClassi} classi`);
@@ -1994,11 +2006,15 @@ async function loadHistory() {
         console.log('📋 Caricamento storico in corso...');
         const text = await file.text();
         historyData = parseHistoryCSV(text);
+        if (historyData.length === 0) {
+            alert('⚠️ Nessuna riga valida trovata. Verifica il formato CSV dello storico (prima riga = intestazione).');
+            return;
+        }
         saveData();
         integrateData();
         updateStats();
         updateDataStatus();
-        populateTeacherSelector(); // Aggiorna selettore
+        populateTeacherSelector();
         alert(`✅ Caricato storico di ${historyData.length} docenti!`);
         console.log(`✅ Storico caricato: ${historyData.length} docenti`);
     } catch (error) {
