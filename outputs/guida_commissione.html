@@ -110,6 +110,7 @@
     padding: 5px 10px; font-size: 9.5pt; color: #2c3e50; cursor: default;
   }
   .tab-btn.active { background: #2980b9; color: white; border-color: #2980b9; }
+  .tab-btn.new    { background: #eafaf1; border-color: #27ae60; color: #1e8449; }
   .tab-content-box {
     border: 1px solid #bdc3c7; border-top: none;
     padding: 12px; border-radius: 0 0 6px 6px;
@@ -124,6 +125,7 @@
   .badge-red    { background: #fadbd8; color: #a93226; }
   .badge-blue   { background: #d6eaf8; color: #1a5276; }
   .badge-gray   { background: #eaecee; color: #555; }
+  .badge-teal   { background: #d1f2eb; color: #0e6655; }
 
   /* ===== PRINT ===== */
   @media print {
@@ -163,6 +165,7 @@
         <li><a href="#dati-desiderata">File desiderata (da Google Forms)</a></li>
         <li><a href="#dati-storico">File storico anni precedenti</a></li>
         <li><a href="#dati-msl3">Nota importante su MSL3</a></li>
+        <li><a href="#dati-consigli">File Consigli di Classe</a></li>
       </ol>
     </li>
     <li><a href="#guida">Guida passo-passo per tab</a>
@@ -171,6 +174,7 @@
         <li><a href="#tab-panoramica">Panoramica</a></li>
         <li><a href="#tab-docenti">Docenti</a></li>
         <li><a href="#tab-assegnazione">Assegnazione MSL</a></li>
+        <li><a href="#tab-consigli">Consigli di Classe</a></li>
         <li><a href="#tab-analisi">Analisi</a></li>
         <li><a href="#tab-export">Export</a></li>
       </ol>
@@ -204,7 +208,7 @@
 
   <div class="box box-info">
     <strong>ℹ️ Il sistema è uno strumento di supporto</strong>
-    L'output finale va comunque revisionato dalla Commissione. Il sistema segnala automaticamente i casi dubbi (match approssimativi, rotazioni mancate, giorni sovraccarichi) per facilitare la verifica.
+    L'output finale va comunque revisionato dalla Commissione. Il sistema segnala automaticamente i casi dubbi (match approssimativi, rotazioni mancate, giorni sovraccarichi, consigli di classe a rischio sostituzione) per facilitare la verifica.
   </div>
 </div>
 
@@ -281,13 +285,37 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
     <p style="margin-top:6px;">MSL3 (la terza scelta nel form) è un <strong>fallback puro della Commissione</strong>, disponibile per tutti i docenti indipendentemente dalle ore contrattuali. Il sistema lo assegna <em>solo</em> se sia MSL1 che MSL2 risultano entrambi saturi — non è mai la prima o seconda preferenza, ma una valvola di sicurezza.</p>
     <p style="margin-top:6px;">Nell'export CSV le colonne <strong>Terza_Richiesta</strong> e <strong>Fallback_MSL3</strong> mostrano rispettivamente qual era la terza scelta del docente e se è stata effettivamente usata.</p>
   </div>
+
+  <h3 id="dati-consigli">2.4 File Consigli di Classe <span class="badge badge-teal" style="font-size:9pt;">opzionale</span></h3>
+  <p>Questo file è necessario solo per usare la tab <strong>📚 Consigli di Classe</strong>. Permette al sistema di individuare i giorni MSL troppo concentrati all'interno dello stesso consiglio, riducendo il rischio di sostituzioni multiple lo stesso giorno.</p>
+
+  <p>Il file si ottiene esportando il foglio <strong>"per cattedre"</strong> del file Excel "Consigli di classe" della scuola in formato CSV. Le colonne devono essere nell'ordine seguente:</p>
+
+  <table>
+    <tr><th class="col-small">Colonna</th><th>Contenuto</th><th>Esempio</th></tr>
+    <tr><td>1</td><td>Classe di concorso</td><td>A001</td></tr>
+    <tr><td>2</td><td>Classe</td><td>1A</td></tr>
+    <tr><td>3</td><td>Materia</td><td>Matematica</td></tr>
+    <tr><td>4</td><td>N. ORE/SETT</td><td>3</td></tr>
+    <tr><td>5</td><td>Docente</td><td>ROSSI Mario</td></tr>
+  </table>
+
+  <div class="box box-info">
+    <strong>ℹ️ Codici placeholder nella colonna Docente</strong>
+    <p style="margin-top:6px;">La colonna "Docente" può contenere codici come <code>XA08</code>, <code>ZA10 (11h spez.)</code> o simili al posto del nome reale: indicano ore non ancora assegnate a un docente. Il sistema li riconosce automaticamente (pattern: codice breve di lettere e cifre), li esclude dall'analisi MSL e segnala il totale come "ore scoperte" nella colonna apposita della tabella Consigli.</p>
+  </div>
+
+  <div class="box box-warning">
+    <strong>⚠️ Non è obbligatorio caricare questo file</strong>
+    Desiderata e Storico sono sufficienti per calcolare l'assegnazione MSL. Il file Consigli di Classe serve solo per l'analisi aggiuntiva nella tab dedicata, da usare dopo aver già calcolato l'assegnazione.
+  </div>
 </div>
 
 <!-- ==================== 3. GUIDA PASSO-PASSO ==================== -->
 <div class="section" id="guida">
   <h2 class="section-title">3. Guida passo-passo per tab</h2>
 
-  <p>L'applicazione è organizzata in 6 tab, da usare nell'ordine indicato:</p>
+  <p>L'applicazione è organizzata in <strong>7 tab</strong>, da usare nell'ordine indicato:</p>
 
   <div class="tabs-bar">
     <div class="tab-btn">📊 Panoramica</div>
@@ -295,23 +323,35 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
     <div class="tab-btn">👥 Docenti</div>
     <div class="tab-btn">🔍 Dettaglio Docente</div>
     <div class="tab-btn">🎯 Assegnazione MSL</div>
+    <div class="tab-btn new">📚 Consigli di Classe</div>
     <div class="tab-btn">📈 Analisi</div>
   </div>
   <div class="tab-content-box">[contenuto del tab selezionato]</div>
 
   <!-- TAB 1 -->
   <h3 id="tab-importa">📁 Tab "Importa Dati"</h3>
-  <p>Primo passo: caricare i due file CSV.</p>
+  <p>Primo passo: caricare i file CSV. Il tab contiene quattro sezioni di import e una sezione di export.</p>
 
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Sezione "Importa Desiderata"</strong> — clicca "Scegli file", seleziona il CSV esportato da Google Forms, poi clicca <em>Carica Desiderata</em>. Un messaggio verde conferma il caricamento.</div></div>
+    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Sezione "Importa Desiderata"</strong> — clicca "Scegli file", seleziona il CSV esportato da Google Forms, poi clicca <em>Carica Desiderata</em>. Un messaggio verde conferma il caricamento con il numero di righe parsate.</div></div>
     <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Sezione "Importa Storico"</strong> — carica il CSV storico allo stesso modo con <em>Carica Storico</em>.</div></div>
-    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Verifica</strong> — torna alla tab Panoramica per controllare i contatori.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Sezione "Importa Consigli di Classe" (opzionale)</strong> — se disponibile, carica il CSV dei consigli con <em>Carica Consigli di Classe</em>. Necessario solo per la tab 📚 Consigli di Classe. Può essere caricato in qualsiasi momento, anche dopo aver già calcolato l'assegnazione.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Verifica</strong> — torna alla tab Panoramica per controllare i contatori e la distribuzione delle preferenze.</div></div>
   </div>
 
   <div class="box box-tip">
     <strong>💡 Dati di test</strong>
     Se vuoi provare il sistema senza caricare file reali, usa il pulsante <em>"Carica Dati di Test"</em>. Carica un dataset di esempio con cui esplorare tutte le funzionalità in sicurezza.
+  </div>
+
+  <div class="box box-info">
+    <strong>💾 Sezione "Esporta Dati" (in fondo a questo tab)</strong>
+    Due pulsanti sempre disponibili, anche senza aver calcolato l'assegnazione:
+    <ul style="margin-top:6px;">
+      <li><strong>Esporta CSV</strong> — scarica tutti i dati integrati (desiderata + storico abbinati) come CSV di backup</li>
+      <li><strong>Esporta Analisi</strong> — scarica le statistiche aggregate per giorno (distribuzione preferenze, rotazioni) come report testuale</li>
+    </ul>
+    I pulsanti di export dell'assegnazione finale si trovano invece nella tab <em>🎯 Assegnazione MSL</em>, dopo aver calcolato.
   </div>
 
   <!-- TAB 2 -->
@@ -326,7 +366,7 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
     <tr><td><strong>Devono Ruotare</strong></td><td>Quanti hanno lo stesso MSL da 3+ anni — rotazione obbligatoria</td></tr>
   </table>
 
-  <p>Sotto i contatori, il grafico <em>"Distribuzione MSL Richiesti"</em> mostra quante preferenze (MSL1+MSL2) si concentrano su ciascun giorno — utile per anticipare i giorni più contesi.</p>
+  <p>Sotto i contatori, il grafico <em>"Distribuzione MSL Richiesti"</em> mostra quante preferenze (MSL1+MSL2) si concentrano su ciascun giorno — utile per anticipare i giorni più contesi. Dopo aver calcolato l'assegnazione, compare anche la sezione <em>"Riepilogo Assegnazioni"</em> con la distribuzione finale dei giorni assegnati.</p>
 
   <!-- TAB 3 -->
   <h3 id="tab-docenti">👥 Tab "Docenti"</h3>
@@ -334,7 +374,7 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
 
   <div class="mockup-label">Esempio card docente</div>
   <div class="mockup">┌─────────────────────────────────────────────────────┐
-│ PORTIOLI Yuri              [🔄 DEVE RUOTARE]        │
+│ PORTIOLI Yuri              [🔄 DEVE RUOTARE] [✏️]   │
 ├─────────────────────────────────────────────────────┤
 │ Ore settimanali:    18                              │
 │ MSL desiderato:     Sabato / Lunedì / Mercoledì     │
@@ -353,6 +393,28 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
   </table>
 
   <p>Usa il campo <em>Cerca</em> per trovare un docente per nome, e il filtro a tendina per vedere solo quelli in rotazione obbligatoria, quelli senza desiderata, ecc.</p>
+
+  <h3>Gestione manuale dei docenti</h3>
+  <p>In cima all'elenco è disponibile il pulsante <strong>➕ Aggiungi Docente</strong>. Su ogni card compare il pulsante <strong>✏️</strong> (modifica). Questi strumenti permettono di gestire i dati direttamente nell'app, senza dover editare i file CSV.</p>
+
+  <p>Il form di aggiunta/modifica ha i seguenti campi:</p>
+  <ul>
+    <li><strong>Cognome</strong> e <strong>Nome</strong> — obbligatori</li>
+    <li><strong>Ore settimanali</strong> — opzionale</li>
+    <li><strong>MSL Opzione 1, 2, 3</strong> — le preferenze del docente (select con i 6 giorni)</li>
+    <li><strong>Note</strong> — testo libero opzionale</li>
+  </ul>
+
+  <p>Il sistema controlla i duplicati prima di salvare: se il cognome+nome corrisponde a un docente già presente, chiede conferma prima di procedere con la modifica anziché creare un duplicato.</p>
+
+  <div class="box box-info">
+    <strong>ℹ️ Badge visivi per i docenti gestiti manualmente</strong>
+    <ul style="margin-top:6px;">
+      <li><span class="badge badge-green">➕ aggiunto manualmente</span> — docente creato nell'app (non presente in nessun CSV importato). Ha anche il pulsante 🗑️ per rimuoverlo.</li>
+      <li><span class="badge badge-blue">✏️ dati modificati</span> — docente proveniente da CSV ma con uno o più campi corretti nell'app.</li>
+    </ul>
+    <p style="margin-top:6px;">Le modifiche manuali sono persistenti: sopravvivono ai ricaricamenti della pagina e ai nuovi import CSV. Se un docente aggiunto manualmente viene poi trovato in un nuovo import CSV, i dati del CSV prendono la precedenza (il record manuale resta salvato ma inattivo).</p>
+  </div>
 
   <!-- TAB 4 (Dettaglio) -->
   <h3>🔍 Tab "Dettaglio Docente"</h3>
@@ -381,15 +443,16 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
     Esegui prima il Greedy per una verifica rapida. Se il risultato ha più di 5-6 conflitti, esegui il Simulated Annealing — spesso riduce i conflitti del 30-50%.
   </div>
 
-  <p>Dopo il calcolo la pagina mostra una <strong>barra di riepilogo</strong> con 5 indicatori:</p>
+  <p>Dopo il calcolo la pagina mostra una <strong>barra di riepilogo</strong> con questi indicatori:</p>
 
   <table>
     <tr><th class="col-mid">Indicatore</th><th>Valore ideale</th><th>Significato</th></tr>
-    <tr><td><strong>Preferenze Soddisfatte</strong></td><td>&gt; 85%</td><td>Percentuale docenti con MSL1 o MSL2 soddisfatti</td></tr>
+    <tr><td><strong>Preferenze Soddisfatte</strong></td><td>&gt; 85%</td><td>Percentuale docenti con MSL1 o MSL2 soddisfatti (calcolata solo sui docenti con desiderata)</td></tr>
     <tr><td><strong>Assegnati su MSL3</strong></td><td>il meno possibile</td><td>Docenti che hanno ricevuto il fallback MSL3 (tollerato, non ideale)</td></tr>
     <tr><td><strong>Rotazioni Forzate</strong></td><td>= tutti i "Deve Ruotare"</td><td>Rotazioni obbligatorie applicate correttamente</td></tr>
     <tr><td><strong>Conflitti Rimanenti</strong></td><td>0 (idealmente)</td><td>Docenti senza nessuna preferenza soddisfatta</td></tr>
     <tr><td><strong>Sbilanciamento Max</strong></td><td>≤ 2</td><td>Differenza tra il giorno più affollato e quello meno affollato</td></tr>
+    <tr><td><strong>Da assegnare manualmente</strong></td><td>0</td><td>Docenti presenti nel sistema ma senza desiderata compilate — vanno assegnati a mano (vedi sotto)</td></tr>
   </table>
 
   <div class="box box-danger">
@@ -397,7 +460,73 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
     Se un giorno supera la soglia di (N÷6 + 2) docenti, compare un banner rosso con il nome del giorno e il conteggio. Con 93 docenti la soglia è 18. In condizioni normali questo avviso non appare.
   </div>
 
-  <!-- TAB 6 -->
+  <h3>Docenti senza desiderata</h3>
+  <p>I docenti presenti nel file storico ma che non hanno compilato il form Google compaiono comunque nella tabella dei risultati, con il badge grigio <span class="badge badge-gray">Senza desiderata</span>. Il sistema non può assegnargli un giorno automaticamente (non conosce le loro preferenze), quindi appaiono nel contatore <em>"Da assegnare manualmente"</em>.</p>
+
+  <div class="box box-warning">
+    <strong>⚠️ Come gestire i docenti senza desiderata</strong>
+    <ol style="margin-top:6px;">
+      <li>Clicca <strong>✏️ Modifica Manualmente</strong> dopo il calcolo</li>
+      <li>Usa il filtro <em>"Solo senza desiderata"</em> per vedere solo questi docenti</li>
+      <li>Assegna il giorno dal menu a tendina per ciascuno</li>
+      <li>Clicca <em>"Applica modifiche"</em> — il badge cambia in <span class="badge badge-blue">Assegnato manualmente</span></li>
+    </ol>
+    <p style="margin-top:6px;">Questi docenti non influenzano la percentuale di preferenze soddisfatte (vengono esclusi dal denominatore del calcolo).</p>
+  </div>
+
+  <h3>Modifica manuale dei risultati</h3>
+  <p>Il pulsante <strong>✏️ Modifica Manualmente</strong> apre una sezione con l'elenco completo di tutti i docenti (non solo quelli in conflitto). La sezione include:</p>
+  <ul>
+    <li>Un campo di <strong>ricerca</strong> per filtrare per nome</li>
+    <li>Un <strong>filtro rapido</strong> a quattro opzioni:
+      <ul>
+        <li><em>Tutti</em> — tutti i docenti</li>
+        <li><em>Solo da rivedere</em> — conflitti e docenti non ancora assegnati</li>
+        <li><em>Solo già OK</em> — preferenza soddisfatta, nessuna azione necessaria</li>
+        <li><em>Solo senza desiderata</em> — per gestire i docenti senza form compilato</li>
+      </ul>
+    </li>
+    <li>Per ogni docente: un menu a tendina con i 6 giorni per cambiare il giorno assegnato</li>
+  </ul>
+
+  <!-- TAB 6 — CONSIGLI DI CLASSE -->
+  <h3 id="tab-consigli">📚 Tab "Consigli di Classe"</h3>
+  <p>Questa tab è disponibile dopo aver caricato il file Consigli di Classe <strong>e</strong> aver calcolato l'assegnazione MSL. Se uno dei due manca, il tab mostra un messaggio informativo.</p>
+
+  <p><strong>Scopo:</strong> individuare i consigli di classe in cui troppi docenti hanno l'MSL lo stesso giorno. Se tre o più insegnanti dello stesso consiglio sono assenti il Mercoledì, per esempio, lo stesso giorno si accumulano più sostituzioni — situazione critica da evitare.</p>
+
+  <p>La tabella mostra una riga per ogni classe con queste colonne:</p>
+
+  <table>
+    <tr><th>Colonna</th><th>Significato</th></tr>
+    <tr><td><strong>Classe</strong></td><td>Nome della classe (cliccabile per espandere il dettaglio)</td></tr>
+    <tr><td><strong>Stato</strong></td><td><span class="badge badge-red">CRITICA</span> ≥ 3 docenti stesso giorno &nbsp;|&nbsp; <span class="badge badge-orange">ATTENZIONE</span> ≥ 2 &nbsp;|&nbsp; <span class="badge badge-green">OK</span></td></tr>
+    <tr><td><strong>Trovati</strong></td><td>Docenti del consiglio abbinati all'assegnazione MSL</td></tr>
+    <tr><td><strong>Lun … Sab</strong></td><td>Quanti docenti del consiglio hanno l'MSL quel giorno (colorato secondo le soglie)</td></tr>
+    <tr><td><strong>❓ Ambigui</strong></td><td>Cognomi omonimi: il sistema segnala i possibili abbinamenti (passa il mouse per il dettaglio)</td></tr>
+    <tr><td><strong>Non trovati</strong></td><td>Nomi nel CSV consigli non abbinabili a nessun docente nell'assegnazione</td></tr>
+    <tr><td><strong>Scoperte</strong></td><td>Ore con codice placeholder (docente reale non ancora assegnato)</td></tr>
+  </table>
+
+  <p>Le righe sono ordinate: <span class="badge badge-red">Critiche</span> → <span class="badge badge-orange">Attenzione</span> → <span class="badge badge-green">OK</span>.</p>
+
+  <div class="box box-tip">
+    <strong>💡 Riga espandibile — dettaglio per giorno</strong>
+    Cliccando su una riga di classe si apre un pannello con i docenti raggruppati per giorno assegnato. I blocchi giorno mostrano il conteggio e il livello di criticità con bordo colorato. Per ciascun docente compare un badge di stato:
+    <ul style="margin-top:6px;">
+      <li>✅ soddisfatto — preferenza MSL1 o MSL2 rispettata</li>
+      <li>✅ 🔁 soddisfatto + rotazione — preferenza rispettata nonostante l'obbligo di rotazione</li>
+      <li>🔄 fallback MSL3 — assegnato sul terzo giorno (tollerato)</li>
+      <li>❌ conflitto — nessuna preferenza soddisfatta</li>
+      <li>🔵 Assegnato manualmente — docente senza desiderata, giorno assegnato a mano</li>
+      <li>🔴 DA ASSEGNARE — docente senza desiderata, giorno ancora da assegnare</li>
+    </ul>
+    In fondo al pannello compare anche una sezione per i docenti non abbinati (non trovati nel sistema) e quelli con cognome ambiguo.
+  </div>
+
+  <p>La tab si aggiorna automaticamente ogni volta che l'assegnazione viene ricalcolata o modificata manualmente — non è necessario ricaricare la pagina o cambiare tab.</p>
+
+  <!-- TAB 7 -->
   <h3 id="tab-analisi">📈 Tab "Analisi"</h3>
   <p>Dopo l'assegnazione, questa tab mostra:</p>
   <ul>
@@ -408,14 +537,23 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
   </ul>
 
   <!-- EXPORT -->
-  <h3 id="tab-export">📄 Export</h3>
-  <p>Tre opzioni di esportazione disponibili nella tab "Assegnazione MSL" dopo il calcolo:</p>
+  <h3 id="tab-export">📄 Export — riepilogo pulsanti</h3>
+  <p>I pulsanti di esportazione si trovano in due punti distinti dell'applicazione:</p>
+
+  <p><strong>Tab "📁 Importa Dati" → sezione "💾 Esporta Dati"</strong> (sempre disponibili):</p>
 
   <table>
     <tr><th>Pulsante</th><th>Contenuto</th><th>Uso tipico</th></tr>
-    <tr><td><strong>Esporta Tabella CSV</strong></td><td>Una riga per docente con tutte le colonne di dettaglio</td><td>Revisione in Excel, invio agli uffici</td></tr>
-    <tr><td><strong>Esporta Report Completo</strong></td><td>CSV + testo con statistiche rotazioni e conflitti</td><td>Archivio ufficiale della Commissione</td></tr>
-    <tr><td><strong>Esporta Analisi</strong></td><td>Solo statistiche aggregate per giorno</td><td>Presentazioni, verbali</td></tr>
+    <tr><td><strong>Esporta CSV</strong></td><td>Tutti i dati integrati (desiderata + storico abbinati)</td><td>Backup dei dati di input, verifica abbinamenti</td></tr>
+    <tr><td><strong>Esporta Analisi</strong></td><td>Statistiche aggregate per giorno (distribuzione preferenze, rotazioni)</td><td>Presentazioni, verbali preparatori</td></tr>
+  </table>
+
+  <p><strong>Tab "🎯 Assegnazione MSL" → dopo il calcolo</strong>:</p>
+
+  <table>
+    <tr><th>Pulsante</th><th>Contenuto</th><th>Uso tipico</th></tr>
+    <tr><td><strong>📊 Esporta Tabella CSV</strong></td><td>Una riga per docente con tutte le colonne di dettaglio dell'assegnazione</td><td>Revisione in Excel, invio agli uffici, archivio ufficiale</td></tr>
+    <tr><td><strong>📄 Esporta Report Completo</strong></td><td>Tabella CSV + testo con statistiche rotazioni e conflitti</td><td>Verbale completo della Commissione</td></tr>
   </table>
 </div>
 
@@ -423,17 +561,17 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
 <div class="section" id="risultati">
   <h2 class="section-title">4. Come leggere il CSV esportato</h2>
 
-  <p>La <strong>Tabella CSV</strong> ha una riga per docente con queste colonne:</p>
+  <p>La <strong>Tabella CSV</strong> (pulsante "📊 Esporta Tabella CSV") ha una riga per docente con queste colonne:</p>
 
   <table>
     <tr><th class="col-mid">Colonna</th><th>Significato e valori possibili</th></tr>
     <tr><td><strong>Cognome / Nome / Email</strong></td><td>Dati anagrafici dal form</td></tr>
     <tr><td><strong>Ore_Settimanali</strong></td><td>Ore dal form (usate solo per visualizzazione)</td></tr>
-    <tr><td><strong>MSL_Assegnato</strong></td><td>Il giorno assegnato definitivamente. <em>Questo è il dato da usare.</em></td></tr>
-    <tr><td><strong>Prima_Richiesta</strong></td><td>MSL1 compilato nel form</td></tr>
+    <tr><td><strong>MSL_Assegnato</strong></td><td>Il giorno assegnato definitivamente. <em>Questo è il dato da usare.</em> Per docenti senza desiderata non ancora assegnati: "DA ASSEGNARE".</td></tr>
+    <tr><td><strong>Prima_Richiesta</strong></td><td>MSL1 compilato nel form. "NESSUNA" per docenti senza desiderata.</td></tr>
     <tr><td><strong>Seconda_Richiesta</strong></td><td>MSL2 compilato nel form</td></tr>
     <tr><td><strong>Terza_Richiesta</strong></td><td>MSL3 compilato nel form (fallback — può essere vuoto)</td></tr>
-    <tr><td><strong>Preferenza_Soddisfatta</strong></td><td><span class="badge badge-green">SÌ</span> se MSL_Assegnato = MSL1 o MSL2 &nbsp;|&nbsp; <span class="badge badge-red">NO</span> altrimenti</td></tr>
+    <tr><td><strong>Preferenza_Soddisfatta</strong></td><td><span class="badge badge-green">SÌ</span> se MSL_Assegnato = MSL1 o MSL2 &nbsp;|&nbsp; <span class="badge badge-red">NO</span> altrimenti &nbsp;|&nbsp; <span class="badge badge-gray">N/A</span> per docenti senza desiderata</td></tr>
     <tr><td><strong>Fallback_MSL3</strong></td><td><span class="badge badge-orange">SÌ</span> = assegnato su MSL3 (tollerato) &nbsp;|&nbsp; <span class="badge badge-gray">NO</span> = normale</td></tr>
     <tr><td><strong>Anni_Stesso_MSL</strong></td><td>Anni consecutivi con lo stesso MSL (da storico)</td></tr>
     <tr><td><strong>Ultimo_MSL</strong></td><td>MSL assegnato nel 2025-26 (anno precedente)</td></tr>
@@ -451,6 +589,7 @@ Portioli,Yuri,18,,Sabato,Sabato,Sabato,Sabato,Sabato</div>
     <tr><td>Rotazione obbligatoria</td><td>3+ anni stesso giorno → assegnato su MSL2/MSL1 diverso</td><td>Verificare se il docente è d'accordo</td></tr>
     <tr><td>Fallback MSL3</td><td>MSL1 e MSL2 erano entrambi saturi — usato MSL3</td><td>Verificare se accettabile per il docente</td></tr>
     <tr><td>Entrambe le preferenze piene</td><td>MSL1 e MSL2 saturi, nessun MSL3 disponibile → giorno meno carico</td><td>⚠️ Contattare il docente per accordo</td></tr>
+    <tr><td>Assegnazione manuale (senza desiderata)</td><td>Docente senza form compilato, giorno assegnato manualmente dalla Commissione</td><td>Comunicare al docente il giorno assegnato</td></tr>
     <tr><td>Giorno pieno, assegnazione automatica</td><td>Nessuna preferenza soddisfacibile → giorno con meno docenti</td><td>⚠️ Contattare il docente per accordo</td></tr>
   </table>
 
@@ -475,22 +614,32 @@ ANGELI      | Venerdì       | Venerdì    |  5   |   SÌ    | Rotazione obbliga
 
   <h3>❓ Un docente è assente dall'elenco — cosa fare?</h3>
   <div class="box box-info">
-    <strong>Docente nuovo assunto (non nel file storico)</strong>
-    <p style="margin-top:6px;">Se ha compilato il form Google, apparirà nella tab Docenti con la card <em>"Con Storico: No"</em>. Il sistema lo assegna comunque usando le sue preferenze MSL1/MSL2, senza considerare rotazioni (non c'è storico). Nessuna azione necessaria.</p>
-    <p style="margin-top:6px;">Se non ha compilato il form, il sistema non ha informazioni su di lui. Aggiungere una riga nel file storico con le ore e lasciare vuote le colonne anno — oppure assegnarlo manualmente dopo l'export.</p>
+    <strong>Tre scenari possibili</strong>
+    <p style="margin-top:6px;"><strong>1. Docente non ha compilato il form Google ma è nello storico:</strong> compare già nell'elenco con il badge <span class="badge badge-gray">NON COMPILATO</span>. Il sistema lo include nell'assegnazione come "senza desiderata" — va assegnato manualmente dalla Commissione (vedi sezione Assegnazione MSL).</p>
+    <p style="margin-top:6px;"><strong>2. Docente assente da entrambi i file (nuovo assunto o dimenticato):</strong> usa il pulsante <strong>➕ Aggiungi Docente</strong> nella tab 👥 Docenti per inserirlo direttamente nell'app. Compila cognome, nome e, se note, le preferenze MSL. Il docente sarà incluso nell'assegnazione al prossimo calcolo. In alternativa, aggiungi una riga nel file storico CSV e ricaricalo.</p>
+    <p style="margin-top:6px;"><strong>3. Docente presente ma con nome scritto diversamente nei due file:</strong> il sistema lo segnala come "Match approssimativo — verifica" nella tab 🔍 Dettaglio Docente. Correggere il nome nel file CSV, oppure usare il pulsante ✏️ sulla card del docente per correggere il nome direttamente nell'app.</p>
+  </div>
+
+  <h3>❓ Un docente non ha compilato il form desiderata — viene escluso dall'assegnazione?</h3>
+  <div class="box box-info">
+    <strong>No — compare nell'assegnazione come "senza desiderata"</strong>
+    <p style="margin-top:6px;">I docenti presenti nel file storico ma senza form compilato vengono inclusi nella tabella dei risultati con il badge grigio <span class="badge badge-gray">Senza desiderata</span>. Non hanno preferenze, quindi il sistema non li assegna automaticamente.</p>
+    <p style="margin-top:6px;"><strong>Come procedere:</strong> dopo il calcolo, usa ✏️ Modifica Manualmente → filtro "Solo senza desiderata" per assegnarli uno per uno. Una volta assegnato il giorno, il badge cambia in <span class="badge badge-blue">Assegnato manualmente</span>.</p>
+    <p style="margin-top:6px;">Questi docenti non influenzano la percentuale di preferenze soddisfatte (vengono esclusi dal calcolo).</p>
+    <p style="margin-top:6px;"><strong>Se il docente non è in nessun file:</strong> usa ➕ Aggiungi Docente nella tab Docenti.</p>
   </div>
 
   <h3>❓ Nella tab Dettaglio compare "Match approssimativo — verifica": cosa significa?</h3>
   <div class="box box-warning">
     <strong>Cognome/nome scritto diversamente nei due file</strong>
     <p style="margin-top:6px;">Il sistema ha collegato i due record usando un algoritmo di similarità (distanza di Levenshtein), ma la corrispondenza non è certa al 100%.</p>
-    <p style="margin-top:6px;"><strong>Cosa fare:</strong> aprire la tab Dettaglio, selezionare il docente segnalato, verificare che il nome nello storico sia effettivamente la stessa persona. Se c'è un errore (es. Salucci Debora vs Salucci Deborae), correggere il file storico e ricaricare.</p>
+    <p style="margin-top:6px;"><strong>Cosa fare:</strong> aprire la tab Dettaglio, selezionare il docente segnalato, verificare che il nome nello storico sia effettivamente la stessa persona. Se c'è un errore (es. Salucci Debora vs Salucci Deborae), correggere il file storico e ricaricare — oppure usare il pulsante ✏️ sulla card del docente nella tab Docenti per correggere il nome direttamente nell'app.</p>
   </div>
 
   <h3>❓ Un giorno ha più docenti degli altri — è un problema?</h3>
   <div class="box box-info">
     <strong>Dipende dall'entità dello squilibrio</strong>
-    <p style="margin-top:6px;">Con 93 docenti su 6 giorni, l'ideale è ~15-16 per giorno. Una differenza di 1-2 docenti è normale e attesa (bilanciamento perfetto è raramente raggiungibile con tutte le preferenze). Il sistema mostra il valore <em>Sbilanciamento Max</em> nella barra di riepilogo:</p>
+    <p style="margin-top:6px;">Con 93 docenti su 6 giorni, l'ideale è ~15-16 per giorno. Una differenza di 1-2 docenti è normale e attesa. Il sistema mostra il valore <em>Sbilanciamento Max</em> nella barra di riepilogo:</p>
     <ul style="margin-top:6px;">
       <li><span class="badge badge-green">≤ 2</span> — ottimo, nessuna azione</li>
       <li><span class="badge badge-orange">3–4</span> — accettabile, monitorare</li>
@@ -520,7 +669,7 @@ ANGELI      | Venerdì       | Venerdì    |  5   |   SÌ    | Rotazione obbliga
   <h3>❓ Voglio azzerare tutto e ricominciare</h3>
   <div class="box box-warning">
     <strong>Usa il pulsante "Reset Totale Sistema"</strong>
-    <p style="margin-top:6px;">Nella tab <em>Panoramica</em>, in fondo alla pagina, c'è il pulsante <span style="background:#e74c3c;color:white;padding:2px 8px;border-radius:4px;font-size:10pt;">🗑️ Reset Totale Sistema</span>. Cancella tutti i dati caricati (desiderata, storico, assegnazioni) e riporta l'applicazione allo stato iniziale. <strong>Non cancella i file CSV sul computer.</strong></p>
+    <p style="margin-top:6px;">Nella tab <em>Panoramica</em>, in fondo alla pagina, c'è il pulsante <span style="background:#e74c3c;color:white;padding:2px 8px;border-radius:4px;font-size:10pt;">🗑️ Reset Totale Sistema</span>. Cancella tutti i dati caricati (desiderata, storico, assegnazioni, modifiche manuali docenti) e riporta l'applicazione allo stato iniziale. <strong>Non cancella i file CSV sul computer.</strong></p>
   </div>
 
   <br><br>
@@ -535,7 +684,7 @@ ANGELI      | Venerdì       | Venerdì    |  5   |   SÌ    | Rotazione obbliga
 </div>
 
 <div style="text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #ddd;font-size:9pt;color:#888;">
-  Sistema Gestione Orari v1.1 — Istituto Blaise Pascal, Reggio Emilia &nbsp;|&nbsp; Anno scolastico 2026-2027
+  Sistema Gestione Orari v1.2 — Istituto Blaise Pascal, Reggio Emilia &nbsp;|&nbsp; Anno scolastico 2026-2027 &nbsp;|&nbsp; Agosto 2026
 </div>
 
 </div><!-- /page -->
